@@ -1,13 +1,11 @@
-pub mod constants;
-pub mod error;
-pub mod instructions;
-pub mod state;
+mod error;
+mod instructions;
+mod state;
 
 use anchor_lang::prelude::*;
 
-pub use constants::*;
-pub use instructions::*;
-pub use state::*;
+use instructions::*;
+use state::*;
 
 declare_id!("Fz24nmvrheUJJXbSwbMkP6FpMFFxbjuDqV99AZLWmASf");
 
@@ -15,7 +13,19 @@ declare_id!("Fz24nmvrheUJJXbSwbMkP6FpMFFxbjuDqV99AZLWmASf");
 pub mod event_protocol {
     use super::*;
 
-    pub fn initialize(ctx: Context<DeployEvent>) -> Result<()> {
-        deploy_event::handler(ctx)
+    pub fn deploy_event(
+        ctx: Context<DeployEvent>,
+        id: Pubkey,
+        title: String,
+        description: String,
+        end_date: u64,
+        left_mint: Pubkey,
+        right_mint: Pubkey,
+    ) -> Result<()> {
+        deploy_event::handler(ctx, id, title, description, end_date, left_mint, right_mint)
+    }
+
+    pub fn vote_event(ctx: Context<VoteEvent>) -> Result<()> {
+        vote_event::handler(ctx)
     }
 }
