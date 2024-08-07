@@ -1,4 +1,5 @@
 import * as anchor from "@coral-xyz/anchor"
+import * as spl from "@solana/spl-token"
 import { Program, web3 } from "@coral-xyz/anchor"
 import { EventProtocol } from "../target/types/event_protocol"
 import { expect } from "chai"
@@ -17,8 +18,21 @@ describe("event-protocol", () => {
     const id = web3.Keypair.generate().publicKey
     const endDate = new Date().getSeconds() + 7 * 24 * 60 * 60
 
-    const [predictionEventPda, bump] = web3.PublicKey.findProgramAddressSync(
+    const [predictionEventPda] = web3.PublicKey.findProgramAddressSync(
       [Buffer.from("prediction_event"), id.toBuffer()],
+      program.programId
+    )
+
+    const leftMint = await spl.createMint(
+      provider.connection,
+      singer.payer,
+      singer.publicKey,
+      null,
+      9
+    )
+
+    const [tokenLeftPool] = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("token_left_pool"), id.toBuffer()],
       program.programId
     )
 
@@ -28,17 +42,21 @@ describe("event-protocol", () => {
         payer: singer.publicKey,
         predictionEvent: predictionEventPda,
         systemProgram: web3.SystemProgram.programId,
+        leftMint: leftMint,
+        tokenLeftPool: tokenLeftPool,
+        tokenProgram: spl.TOKEN_PROGRAM_ID,
+        rent: web3.SYSVAR_RENT_PUBKEY,
         solLeftPool: null,
         solRightPool: null
       })
       .rpc()
 
     const predictionEvents = await program.account.predictionEvent.all()
-    const solLeftPools = await program.account.solLeftPool.all()
-    const solRightPools = await program.account.solRightPool.all()
+    // const solLeftPools = await program.account.solLeftPool.all()
+    // const solRightPools = await program.account.solRightPool.all()
 
     console.log("predictionEvent: ", predictionEvents)
-    console.log("solLeftPools: ", solLeftPools)
-    console.log("solRightPools: ", solRightPools)
+    // console.log("solLeftPools: ", solLeftPools)
+    // console.log("solRightPools: ", solRightPools)
   })
 })

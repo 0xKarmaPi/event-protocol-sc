@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token::{Mint, Token, TokenAccount};
 
 use crate::{
     prediction_event::PredictionEvent, sol_left_pool::SolLeftPool, sol_right_pool::SolRightPool,
@@ -22,6 +23,7 @@ pub struct DeployEvent<'r> {
     )]
     prediction_event: Account<'r, PredictionEvent>,
 
+    /// sol pool
     #[account(
         init,
         space = 8 + SolLeftPool::INIT_SPACE,
@@ -46,7 +48,24 @@ pub struct DeployEvent<'r> {
     )]
     sol_right_pool: Option<Account<'r, SolRightPool>>,
 
+    /// token pool
+    left_mint: Account<'r, Mint>,
+
+    #[account(
+        init,
+        payer = payer,
+        seeds = [b"token_left_pool", id.key().as_ref()],
+        token::mint = left_mint,
+        token::authority = prediction_event,
+        bump,
+    )]
+    token_left_pool: Account<'r, TokenAccount>,
+
+    token_program: Program<'r, Token>,
+
     system_program: Program<'r, System>,
+
+    rent: Sysvar<'r, Rent>,
 }
 
 pub fn handler(
