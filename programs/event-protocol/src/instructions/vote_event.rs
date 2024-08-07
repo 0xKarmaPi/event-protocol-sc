@@ -24,19 +24,22 @@ pub struct VoteEvent<'r> {
         payer = signer,
         seeds = [
             Ticket::SEED_PREFIX,
-            signer.key().as_ref()
-            // prediction_event.id.key().as_ref(),
+            prediction_event.id.key().as_ref(),
+            signer.key().as_ref(),
         ],
         bump,
     )]
     ticket: Account<'r, Ticket>,
-
     system_program: Program<'r, System>,
 }
 
 pub fn handler(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
-    let prediction_event = &ctx.accounts.prediction_event;
+    let prediction_event = &mut ctx.accounts.prediction_event;
+    let ticket = &mut ctx.accounts.ticket;
     let signer = &ctx.accounts.signer;
+
+    ticket.creator = signer.key();
+    ticket.amount += amount;
 
     let cpi_context = CpiContext::new(
         ctx.accounts.system_program.to_account_info(),
@@ -46,6 +49,8 @@ pub fn handler(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
         },
     );
     system_program::transfer(cpi_context, amount)?;
+
+    prediction_event.title = "cmm".to_string();
 
     Ok(())
 }

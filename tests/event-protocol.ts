@@ -64,27 +64,39 @@ describe("event-protocol", () => {
       })
       .rpc()
 
-    const predictionEvents = await program.account.predictionEvent.all()
+    let predictionEventAcc = await program.account.predictionEvent.fetch(
+      predictionEvent
+    )
 
-    console.log("predictionEvents: ", predictionEvents)
+    console.log("predictionEventAcc: ", predictionEventAcc)
 
     const [ticket] = web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("ticket"), singer.payer.publicKey.toBuffer()],
+      [Buffer.from("ticket"), id.toBuffer(), singer.payer.publicKey.toBuffer()],
       program.programId
     )
 
     await program.methods
       .voteEvent(new BN(web3.LAMPORTS_PER_SOL * 3))
       .accountsStrict({
-        predictionEvent: predictionEvents[0].publicKey,
+        predictionEvent,
         signer: singer.payer.publicKey,
         systemProgram: web3.SystemProgram.programId,
         ticket
       })
       .rpc()
 
-    const ticketAccount = await program.account.predictionEvent.fetch(ticket)
+    predictionEventAcc = await program.account.predictionEvent.fetch(
+      predictionEvent
+    )
 
-    console.log("ticketAccount: ", ticketAccount)
+    console.log("predictionEventAcc: ", predictionEventAcc)
+
+    const ticketAcc = await program.account.ticket.fetch(ticket)
+
+    console.log("ticketAcc amount: ", ticketAcc.amount.toNumber())
+    console.log(
+      "predictionEventAcc lamports: ",
+      await provider.connection.getBalance(predictionEvent)
+    )
   })
 })
