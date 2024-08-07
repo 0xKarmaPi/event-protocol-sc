@@ -24,7 +24,8 @@ pub struct VoteEvent<'r> {
         payer = signer,
         seeds = [
             Ticket::SEED_PREFIX,
-            prediction_event.id.key().as_ref(),
+            signer.key().as_ref()
+            // prediction_event.id.key().as_ref(),
         ],
         bump,
     )]

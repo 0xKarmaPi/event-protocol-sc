@@ -66,6 +66,25 @@ describe("event-protocol", () => {
 
     const predictionEvents = await program.account.predictionEvent.all()
 
-    console.log("predictionEvent: ", predictionEvents)
+    console.log("predictionEvents: ", predictionEvents)
+
+    const [ticket] = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("ticket"), singer.payer.publicKey.toBuffer()],
+      program.programId
+    )
+
+    await program.methods
+      .voteEvent(new BN(web3.LAMPORTS_PER_SOL * 3))
+      .accountsStrict({
+        predictionEvent: predictionEvents[0].publicKey,
+        signer: singer.payer.publicKey,
+        systemProgram: web3.SystemProgram.programId,
+        ticket
+      })
+      .rpc()
+
+    const ticketAccount = await program.account.predictionEvent.fetch(ticket)
+
+    console.log("ticketAccount: ", ticketAccount)
   })
 })
