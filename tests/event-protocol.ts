@@ -18,8 +18,18 @@ describe("event-protocol", () => {
     const id = web3.Keypair.generate().publicKey
     const endDate = new Date().getSeconds() + 7 * 24 * 60 * 60
 
-    const [predictionEventPda] = web3.PublicKey.findProgramAddressSync(
+    const [predictionEvent] = web3.PublicKey.findProgramAddressSync(
       [Buffer.from("prediction_event"), id.toBuffer()],
+      program.programId
+    )
+
+    const [leftPool] = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("left_pool"), id.toBuffer()],
+      program.programId
+    )
+
+    const [rightPool] = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("right_pool"), id.toBuffer()],
       program.programId
     )
 
@@ -31,32 +41,31 @@ describe("event-protocol", () => {
       9
     )
 
-    const [tokenLeftPool] = web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("token_left_pool"), id.toBuffer()],
-      program.programId
+    const rightMint = await spl.createMint(
+      provider.connection,
+      singer.payer,
+      singer.publicKey,
+      null,
+      9
     )
 
     await program.methods
       .deployEvent(id, "some(title)", "some(descrition)", new BN(endDate))
       .accountsStrict({
         payer: singer.publicKey,
-        predictionEvent: predictionEventPda,
+        predictionEvent,
         systemProgram: web3.SystemProgram.programId,
-        leftMint: leftMint,
-        tokenLeftPool: tokenLeftPool,
+        leftMint,
+        rightMint,
+        leftPool,
+        rightPool,
         tokenProgram: spl.TOKEN_PROGRAM_ID,
-        rent: web3.SYSVAR_RENT_PUBKEY,
-        solLeftPool: null,
-        solRightPool: null
+        rent: web3.SYSVAR_RENT_PUBKEY
       })
       .rpc()
 
     const predictionEvents = await program.account.predictionEvent.all()
-    // const solLeftPools = await program.account.solLeftPool.all()
-    // const solRightPools = await program.account.solRightPool.all()
 
     console.log("predictionEvent: ", predictionEvents)
-    // console.log("solLeftPools: ", solLeftPools)
-    // console.log("solRightPools: ", solRightPools)
   })
 })
