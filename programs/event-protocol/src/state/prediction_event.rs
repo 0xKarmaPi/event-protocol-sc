@@ -16,10 +16,6 @@ pub struct PredictionEvent {
 
     #[max_len(144)]
     pub description: String,
-
-    pub left_mint: Pubkey,
-
-    pub right_mint: Pubkey,
 }
 
 impl PredictionEvent {

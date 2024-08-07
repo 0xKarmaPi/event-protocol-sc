@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, TokenAccount};
 
 use crate::{
     prediction_event::PredictionEvent, sol_left_pool::SolLeftPool, sol_right_pool::SolRightPool,
@@ -47,18 +46,6 @@ pub struct DeployEvent<'r> {
     )]
     sol_right_pool: Option<Account<'r, SolRightPool>>,
 
-    #[account(
-        init,
-        payer = payer,
-        seeds = [b"nonsol_left_pool", id.key().as_ref()],
-        token::mint = left_mint,
-        token::authority = token_account_owner_pda,
-        bump,
-    )]
-    nonsol_left_pool: Option<Account<'r, TokenAccount>>,
-
-    left_mint: Option<Account<'r, Mint>>,
-
     system_program: Program<'r, System>,
 }
 
@@ -68,8 +55,6 @@ pub fn handler(
     title: String,
     description: String,
     end_date: u64,
-    left_mint: Pubkey,
-    right_mint: Pubkey,
 ) -> Result<()> {
     let prediction_event = &mut ctx.accounts.prediction_event;
     let payer = &ctx.accounts.payer;
@@ -79,8 +64,6 @@ pub fn handler(
     prediction_event.end_date = end_date;
     prediction_event.title = title;
     prediction_event.description = description;
-    prediction_event.left_mint = left_mint;
-    prediction_event.right_mint = right_mint;
     prediction_event.bump = ctx.bumps.prediction_event;
 
     Ok(())

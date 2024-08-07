@@ -19,10 +19,8 @@ pub mod event_protocol {
         title: String,
         description: String,
         end_date: u64,
-        left_mint: Pubkey,
-        right_mint: Pubkey,
     ) -> Result<()> {
-        deploy_event::handler(ctx, id, title, description, end_date, left_mint, right_mint)
+        deploy_event::handler(ctx, id, title, description, end_date)
     }
 
     pub fn vote_event(ctx: Context<VoteEvent>) -> Result<()> {
