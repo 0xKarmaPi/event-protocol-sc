@@ -3,22 +3,22 @@ import { Program } from "@coral-xyz/anchor"
 import { BN } from "bn.js"
 import { expect } from "chai"
 import { EventProtocol } from "../target/types/event_protocol"
-import { createPredictionEvent } from "./helper"
+import { createPredictionEvent } from "../test-helper/create-prediction-event"
 
 describe("deploy_event instruction", () => {
   const provider = anchor.AnchorProvider.env()
   anchor.setProvider(provider)
 
   const program = anchor.workspace.EventProtocol as Program<EventProtocol>
-  const singer = provider.wallet as anchor.Wallet
+  const signer = provider.wallet as anchor.Wallet
 
   it(`Deploy a event left mint is "Some", right mint is "Some"`, async () => {
     const { id, leftMint, predictionEventAcc, rightMint } =
-      await createPredictionEvent(singer, provider, program, "some::some")
+      await createPredictionEvent(signer, provider, program, "some::some")
 
     expect(predictionEventAcc.id.toBase58()).eq(id.toBase58())
     expect(predictionEventAcc.creator.toBase58()).eq(
-      singer.publicKey.toBase58()
+      signer.publicKey.toBase58()
     )
     expect(predictionEventAcc.title, "title").eq("some(title)")
     expect(predictionEventAcc.description).eq("some(description)")
@@ -36,7 +36,7 @@ describe("deploy_event instruction", () => {
 
   it(`Deploy a event left mint is "Some", right mint is "None"`, async () => {
     const { id, leftMint, predictionEventAcc } = await createPredictionEvent(
-      singer,
+      signer,
       provider,
       program,
       "some::none"
@@ -44,7 +44,7 @@ describe("deploy_event instruction", () => {
 
     expect(predictionEventAcc.id.toBase58()).eq(id.toBase58())
     expect(predictionEventAcc.creator.toBase58()).eq(
-      singer.publicKey.toBase58()
+      signer.publicKey.toBase58()
     )
     expect(predictionEventAcc.title).eq("some(title)")
     expect(predictionEventAcc.description).eq("some(description)")
@@ -61,7 +61,7 @@ describe("deploy_event instruction", () => {
 
   it(`Deploy a event left mint is "None", right mint is "Some"`, async () => {
     const { id, predictionEventAcc, rightMint } = await createPredictionEvent(
-      singer,
+      signer,
       provider,
       program,
       "none::some"
@@ -69,7 +69,7 @@ describe("deploy_event instruction", () => {
 
     expect(predictionEventAcc.id.toBase58()).eq(id.toBase58())
     expect(predictionEventAcc.creator.toBase58()).eq(
-      singer.publicKey.toBase58()
+      signer.publicKey.toBase58()
     )
     expect(predictionEventAcc.title).eq("some(title)")
     expect(predictionEventAcc.description).eq("some(description)")
@@ -86,7 +86,7 @@ describe("deploy_event instruction", () => {
 
   it(`Deploy a event left mint is "None", right mint is "None"`, async () => {
     const { id, predictionEventAcc } = await createPredictionEvent(
-      singer,
+      signer,
       provider,
       program,
       "none::none"
@@ -94,7 +94,7 @@ describe("deploy_event instruction", () => {
 
     expect(predictionEventAcc.id.toBase58()).eq(id.toBase58())
     expect(predictionEventAcc.creator.toBase58()).eq(
-      singer.publicKey.toBase58()
+      signer.publicKey.toBase58()
     )
     expect(predictionEventAcc.title).eq("some(title)")
     expect(predictionEventAcc.description).eq("some(description)")

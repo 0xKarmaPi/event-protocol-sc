@@ -8,6 +8,15 @@ pub enum ErrorCode {
     #[msg("Invalid mint account")]
     InvalidMintError,
 
-    #[msg("This event does not have the left mint")]
+    #[msg("This event does not have the left mint and left pool")]
     NonLeftEventError,
+
+    #[msg("Missing left pool")]
+    MissingLeftPoolError,
+
+    #[msg("Missing sender's ata")]
+    MissingSenderAtaError,
+
+    #[msg("This event does not have sol left pool")]
+    LeftEventError,
 }

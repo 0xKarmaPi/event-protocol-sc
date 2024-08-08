@@ -104,9 +104,11 @@ fn handle_vote_left(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
             return err!(ErrorCode::InvalidMintError);
         }
 
-        let left_pool = left_pool.as_ref().ok_or(ErrorCode::ExecutionError)?;
+        let left_pool = left_pool.as_ref().ok_or(ErrorCode::MissingLeftPoolError)?;
 
-        let left_sender_ata = left_sender_ata.as_ref().ok_or(ErrorCode::ExecutionError)?;
+        let left_sender_ata = left_sender_ata
+            .as_ref()
+            .ok_or(ErrorCode::MissingSenderAtaError)?;
 
         let transfer_instruction = anchor_spl::token::Transfer {
             from: left_sender_ata.to_account_info(),
@@ -120,6 +122,13 @@ fn handle_vote_left(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
         );
 
         anchor_spl::token::transfer(cpi_ctx, amount)?;
+
+        let left_pool = prediction_event
+            .left_pool
+            .as_mut()
+            .ok_or(ErrorCode::NonLeftEventError)?;
+
+        *left_pool += amount;
     } else {
         let cpi_context = CpiContext::new(
             ctx.accounts.system_program.to_account_info(),
@@ -132,7 +141,7 @@ fn handle_vote_left(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
         let sol_left_pool = prediction_event
             .sol_left_pool
             .as_mut()
-            .ok_or(ErrorCode::ExecutionError)?;
+            .ok_or(ErrorCode::LeftEventError)?;
 
         system_program::transfer(cpi_context, amount)?;
 
