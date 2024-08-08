@@ -16,6 +16,18 @@ pub struct PredictionEvent {
 
     #[max_len(144)]
     pub description: String,
+
+    pub left_mint: Option<Pubkey>,
+
+    pub right_mint: Option<Pubkey>,
+
+    pub sol_left_pool: Option<u64>,
+
+    pub sol_right_pool: Option<u64>,
+
+    pub left_pool: Option<u64>,
+
+    pub right_pool: Option<u64>,
 }
 
 impl PredictionEvent {

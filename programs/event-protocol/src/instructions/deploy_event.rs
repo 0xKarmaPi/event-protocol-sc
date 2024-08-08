@@ -61,6 +61,8 @@ pub fn handler(
 ) -> Result<()> {
     let prediction_event = &mut ctx.accounts.prediction_event;
     let payer = &ctx.accounts.payer;
+    let left_mint = &ctx.accounts.left_mint;
+    let right_mint = &ctx.accounts.right_mint;
 
     prediction_event.id = id;
     prediction_event.creator = payer.key();
@@ -68,6 +70,20 @@ pub fn handler(
     prediction_event.title = title;
     prediction_event.description = description;
     prediction_event.bump = ctx.bumps.prediction_event;
+
+    if let Some(left_mint) = left_mint {
+        prediction_event.left_mint = Some(left_mint.key());
+        prediction_event.left_pool = Some(0);
+    } else {
+        prediction_event.sol_left_pool = Some(0)
+    }
+
+    if let Some(right_mint) = right_mint {
+        prediction_event.right_mint = Some(right_mint.key());
+        prediction_event.right_pool = Some(0);
+    } else {
+        prediction_event.sol_right_pool = Some(0)
+    }
 
     Ok(())
 }
