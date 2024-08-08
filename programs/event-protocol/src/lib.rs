@@ -23,7 +23,7 @@ pub mod event_protocol {
         deploy_event::handler(ctx, id, title, description, end_date)
     }
 
-    pub fn vote_event(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
-        vote_event::handler(ctx, amount)
+    pub fn vote_event(ctx: Context<VoteEvent>, selection: Selection, amount: u64) -> Result<()> {
+        vote_event::handler(ctx, selection, amount)
     }
 }
