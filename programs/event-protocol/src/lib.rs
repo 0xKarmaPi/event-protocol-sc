@@ -32,6 +32,7 @@ pub mod event_protocol {
         id: Pubkey,
         title: String,
         description: String,
+
         end_date: u64,
     ) -> Result<()> {
         deploy_ss_event::handler(ctx, id, title, description, end_date)
