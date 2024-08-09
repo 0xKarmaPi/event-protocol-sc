@@ -13,6 +13,10 @@ declare_id!("Fz24nmvrheUJJXbSwbMkP6FpMFFxbjuDqV99AZLWmASf");
 pub mod event_protocol {
     use super::*;
 
+    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+        initialize::hanlder(ctx)
+    }
+
     pub fn deploy_event(
         ctx: Context<DeployEvent>,
         id: Pubkey,
