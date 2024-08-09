@@ -2,7 +2,7 @@ use anchor_lang::{prelude::*, system_program};
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
 use crate::{
-    error::ErrorCode,
+    error::Error,
     prediction_event::PredictionEvent,
     ticket::{Selection, Ticket},
 };
@@ -78,6 +78,7 @@ pub fn handler(ctx: Context<VoteEvent>, selection: Selection, amount: u64) -> Re
 
     ticket.creator = signer.key();
     ticket.amount += amount;
+    ticket.selection = selection;
 
     match selection {
         Selection::Left => handle_vote_left(ctx, amount),
@@ -93,22 +94,15 @@ fn handle_vote_left(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
     let left_sender_ata = &ctx.accounts.left_sender_ata;
 
     if let Some(left_mint) = left_mint {
-        if prediction_event.left_mint.is_none() {
-            return err!(ErrorCode::NonLeftEventError);
+        let event_left_mint = prediction_event.left_mint.ok_or(Error::NonLeftEvent)?;
+
+        if event_left_mint != left_mint.key() {
+            return err!(Error::InvalidMint);
         }
 
-        if prediction_event
-            .left_mint
-            .is_some_and(|mint| mint != left_mint.key())
-        {
-            return err!(ErrorCode::InvalidMintError);
-        }
+        let left_pool = left_pool.as_ref().ok_or(Error::MissingLeftPool)?;
 
-        let left_pool = left_pool.as_ref().ok_or(ErrorCode::MissingLeftPoolError)?;
-
-        let left_sender_ata = left_sender_ata
-            .as_ref()
-            .ok_or(ErrorCode::MissingSenderAtaError)?;
+        let left_sender_ata = left_sender_ata.as_ref().ok_or(Error::MissingSenderAta)?;
 
         let transfer_instruction = anchor_spl::token::Transfer {
             from: left_sender_ata.to_account_info(),
@@ -126,7 +120,7 @@ fn handle_vote_left(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
         let left_pool = prediction_event
             .left_pool
             .as_mut()
-            .ok_or(ErrorCode::NonLeftEventError)?;
+            .ok_or(Error::NonLeftEvent)?;
 
         *left_pool += amount;
     } else {
@@ -141,7 +135,7 @@ fn handle_vote_left(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
         let sol_left_pool = prediction_event
             .sol_left_pool
             .as_mut()
-            .ok_or(ErrorCode::LeftEventError)?;
+            .ok_or(Error::LeftEvent)?;
 
         system_program::transfer(cpi_context, amount)?;
 
@@ -159,20 +153,15 @@ fn handle_vote_right(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
     let right_sender_ata = &ctx.accounts.right_sender_ata;
 
     if let Some(right_mint) = right_mint {
-        if prediction_event.left_mint.is_none() {
-            return err!(ErrorCode::NonLeftEventError);
+        let event_right_mint = prediction_event.right_mint.ok_or(Error::NonRightEvent)?;
+
+        if event_right_mint != right_mint.key() {
+            return err!(Error::InvalidMint);
         }
 
-        if prediction_event
-            .right_mint
-            .is_some_and(|mint| mint != right_mint.key())
-        {
-            return err!(ErrorCode::InvalidMintError);
-        }
+        let right_pool = right_pool.as_ref().ok_or(Error::NonRightEvent)?;
 
-        let right_pool = right_pool.as_ref().ok_or(ErrorCode::ExecutionError)?;
-
-        let right_sender_ata = right_sender_ata.as_ref().ok_or(ErrorCode::ExecutionError)?;
+        let right_sender_ata = right_sender_ata.as_ref().ok_or(Error::MissingSenderAta)?;
 
         let transfer_instruction = anchor_spl::token::Transfer {
             from: right_sender_ata.to_account_info(),
@@ -186,6 +175,13 @@ fn handle_vote_right(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
         );
 
         anchor_spl::token::transfer(cpi_ctx, amount)?;
+
+        let right_pool = prediction_event
+            .right_pool
+            .as_mut()
+            .ok_or(Error::NonRightEvent)?;
+
+        *right_pool += amount;
     } else {
         let cpi_context = CpiContext::new(
             ctx.accounts.system_program.to_account_info(),
@@ -198,7 +194,7 @@ fn handle_vote_right(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
         let sol_right_pool = prediction_event
             .sol_right_pool
             .as_mut()
-            .ok_or(ErrorCode::ExecutionError)?;
+            .ok_or(Error::RightEvent)?;
 
         system_program::transfer(cpi_context, amount)?;
 

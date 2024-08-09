@@ -29,9 +29,9 @@ describe("deploy_event instruction", () => {
     expect(predictionEventAcc.solLeftPool).eq(null)
     expect(predictionEventAcc.solRightPool).eq(null)
 
-    expect(predictionEventAcc.leftPool?.eq(new BN(0))).to.be.true
+    expect(predictionEventAcc.leftPool?.eq(new BN(0))).be.true
 
-    expect(predictionEventAcc.rightPool?.eq(new BN(0))).to.be.true
+    expect(predictionEventAcc.rightPool?.eq(new BN(0))).be.true
   })
 
   it(`Deploy a event left mint is "Some", right mint is "None"`, async () => {
@@ -53,9 +53,9 @@ describe("deploy_event instruction", () => {
     expect(predictionEventAcc.rightMint).eq(null)
 
     expect(predictionEventAcc.solLeftPool).eq(null)
-    expect(predictionEventAcc.solRightPool?.eq(new BN(0))).to.be.true
+    expect(predictionEventAcc.solRightPool?.eq(new BN(0))).be.true
 
-    expect(predictionEventAcc.leftPool?.eq(new BN(0))).to.be.true
+    expect(predictionEventAcc.leftPool?.eq(new BN(0))).be.true
     expect(predictionEventAcc.rightPool).eq(null)
   })
 
@@ -77,11 +77,11 @@ describe("deploy_event instruction", () => {
     expect(predictionEventAcc.leftMint).eq(null)
     expect(predictionEventAcc.rightMint?.toBase58()).eq(rightMint.toBase58())
 
-    expect(predictionEventAcc.solLeftPool?.eq(new BN(0))).to.be.true
+    expect(predictionEventAcc.solLeftPool?.eq(new BN(0))).be.true
     expect(predictionEventAcc.solRightPool).eq(null)
 
     expect(predictionEventAcc.leftPool).eq(null)
-    expect(predictionEventAcc.rightPool?.eq(new BN(0))).to.be.true
+    expect(predictionEventAcc.rightPool?.eq(new BN(0))).be.true
   })
 
   it(`Deploy a event left mint is "None", right mint is "None"`, async () => {
@@ -102,8 +102,8 @@ describe("deploy_event instruction", () => {
     expect(predictionEventAcc.leftMint).eq(null)
     expect(predictionEventAcc.rightMint).eq(null)
 
-    expect(predictionEventAcc.solLeftPool?.eq(new BN(0))).to.be.true
-    expect(predictionEventAcc.solRightPool?.eq(new BN(0))).to.be.true
+    expect(predictionEventAcc.solLeftPool?.eq(new BN(0))).be.true
+    expect(predictionEventAcc.solRightPool?.eq(new BN(0))).be.true
 
     expect(predictionEventAcc.leftPool).eq(null)
     expect(predictionEventAcc.rightPool).eq(null)

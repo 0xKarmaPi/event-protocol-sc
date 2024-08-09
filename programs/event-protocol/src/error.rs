@@ -1,22 +1,25 @@
 use anchor_lang::prelude::*;
 
 #[error_code]
-pub enum ErrorCode {
-    #[msg("Execution error")]
-    ExecutionError,
-
+pub enum Error {
     #[msg("Invalid mint account")]
-    InvalidMintError,
+    InvalidMint,
 
     #[msg("This event does not have the left mint and left pool")]
-    NonLeftEventError,
+    NonLeftEvent,
+
+    #[msg("This event does not have the right mint and right pool")]
+    NonRightEvent,
 
     #[msg("Missing left pool")]
-    MissingLeftPoolError,
+    MissingLeftPool,
 
     #[msg("Missing sender's ata")]
-    MissingSenderAtaError,
+    MissingSenderAta,
 
     #[msg("This event does not have sol left pool")]
-    LeftEventError,
+    LeftEvent,
+
+    #[msg("This event does not have sol right pool")]
+    RightEvent,
 }
