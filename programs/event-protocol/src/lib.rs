@@ -17,6 +17,26 @@ pub mod event_protocol {
         initialize::hanlder(ctx)
     }
 
+    pub fn deploy_nn_event(
+        ctx: Context<DeployNNEvent>,
+        id: Pubkey,
+        title: String,
+        description: String,
+        end_date: u64,
+    ) -> Result<()> {
+        deploy_nn_event::handler(ctx, id, title, description, end_date)
+    }
+
+    pub fn deploy_ss_event(
+        ctx: Context<DeploySSEvent>,
+        id: Pubkey,
+        title: String,
+        description: String,
+        end_date: u64,
+    ) -> Result<()> {
+        deploy_ss_event::handler(ctx, id, title, description, end_date)
+    }
+
     pub fn deploy_event(
         ctx: Context<DeployEvent>,
         id: Pubkey,
