@@ -1,10 +1,11 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token::{Mint, Token, TokenAccount};
 
 use crate::prediction_event::PredictionEvent;
 
 #[derive(Accounts)]
 #[instruction(id:  Pubkey)]
-pub struct DeployNNEvent<'r> {
+pub struct DeploySNEvent<'r> {
     #[account(mut)]
     payer: Signer<'r>,
 
@@ -20,11 +21,27 @@ pub struct DeployNNEvent<'r> {
     )]
     prediction_event: Account<'r, PredictionEvent>,
 
+    left_mint: Account<'r, Mint>,
+
+    #[account(
+      init,
+      payer = payer,
+      seeds = [b"left_pool", id.key().as_ref()],
+      token::mint = left_mint,
+      token::authority = prediction_event,
+      bump,
+    )]
+    left_pool: Account<'r, TokenAccount>,
+
+    token_program: Program<'r, Token>,
+
     system_program: Program<'r, System>,
+
+    rent: Sysvar<'r, Rent>,
 }
 
 pub fn handler(
-    ctx: Context<DeployNNEvent>,
+    ctx: Context<DeploySNEvent>,
     id: Pubkey,
     title: String,
     description: String,
@@ -32,6 +49,7 @@ pub fn handler(
 ) -> Result<()> {
     let prediction_event = &mut ctx.accounts.prediction_event;
     let payer = &ctx.accounts.payer;
+    let left_mint = &ctx.accounts.left_mint;
 
     prediction_event.id = id;
     prediction_event.creator = payer.key();
@@ -40,7 +58,9 @@ pub fn handler(
     prediction_event.description = description;
     prediction_event.bump = ctx.bumps.prediction_event;
 
-    prediction_event.sol_left_pool = Some(0);
+    prediction_event.left_mint = Some(left_mint.key());
+    prediction_event.left_pool = Some(0);
+
     prediction_event.sol_right_pool = Some(0);
 
     Ok(())

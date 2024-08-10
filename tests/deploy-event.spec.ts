@@ -5,14 +5,14 @@ import { expect } from "chai"
 import { EventProtocol } from "../target/types/event_protocol"
 import { createPredictionEvent } from "../test-helper/create-prediction-event"
 
-describe("deploy_event instruction", () => {
+describe("deploy_event instructions", () => {
   const provider = anchor.AnchorProvider.env()
   anchor.setProvider(provider)
 
   const program = anchor.workspace.EventProtocol as Program<EventProtocol>
   const signer = provider.wallet as anchor.Wallet
 
-  it(`Deploy a event left mint is "Some", right mint is "Some"`, async () => {
+  it(`Deploy a ss_event`, async () => {
     const { id, leftMint, predictionEventAcc, rightMint } =
       await createPredictionEvent(signer, provider, program, "some::some")
 

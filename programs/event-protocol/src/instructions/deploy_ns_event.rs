@@ -5,7 +5,7 @@ use crate::prediction_event::PredictionEvent;
 
 #[derive(Accounts)]
 #[instruction(id:  Pubkey)]
-pub struct DeployEvent<'r> {
+pub struct DeployNSEvent<'r> {
     #[account(mut)]
     payer: Signer<'r>,
 
@@ -21,19 +21,7 @@ pub struct DeployEvent<'r> {
     )]
     prediction_event: Account<'r, PredictionEvent>,
 
-    left_mint: Option<Account<'r, Mint>>,
-
-    #[account(
-      init,
-      payer = payer,
-      seeds = [b"left_pool", id.key().as_ref()],
-      token::mint = left_mint,
-      token::authority = prediction_event,
-      bump,
-    )]
-    left_pool: Option<Account<'r, TokenAccount>>,
-
-    right_mint: Option<Account<'r, Mint>>,
+    right_mint: Account<'r, Mint>,
 
     #[account(
         init,
@@ -43,7 +31,7 @@ pub struct DeployEvent<'r> {
         token::authority = prediction_event,
         bump,
       )]
-    right_pool: Option<Account<'r, TokenAccount>>,
+    right_pool: Account<'r, TokenAccount>,
 
     token_program: Program<'r, Token>,
 
@@ -53,7 +41,7 @@ pub struct DeployEvent<'r> {
 }
 
 pub fn handler(
-    ctx: Context<DeployEvent>,
+    ctx: Context<DeployNSEvent>,
     id: Pubkey,
     title: String,
     description: String,
@@ -61,7 +49,6 @@ pub fn handler(
 ) -> Result<()> {
     let prediction_event = &mut ctx.accounts.prediction_event;
     let payer = &ctx.accounts.payer;
-    let left_mint = &ctx.accounts.left_mint;
     let right_mint = &ctx.accounts.right_mint;
 
     prediction_event.id = id;
@@ -71,19 +58,10 @@ pub fn handler(
     prediction_event.description = description;
     prediction_event.bump = ctx.bumps.prediction_event;
 
-    if let Some(left_mint) = left_mint {
-        prediction_event.left_mint = Some(left_mint.key());
-        prediction_event.left_pool = Some(0);
-    } else {
-        prediction_event.sol_left_pool = Some(0)
-    }
+    prediction_event.sol_left_pool = Some(0);
 
-    if let Some(right_mint) = right_mint {
-        prediction_event.right_mint = Some(right_mint.key());
-        prediction_event.right_pool = Some(0);
-    } else {
-        prediction_event.sol_right_pool = Some(0)
-    }
+    prediction_event.right_mint = Some(right_mint.key());
+    prediction_event.right_pool = Some(0);
 
     Ok(())
 }

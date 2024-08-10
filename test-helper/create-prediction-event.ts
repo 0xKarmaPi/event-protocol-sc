@@ -46,23 +46,72 @@ export async function createPredictionEvent(
     9
   )
 
-  const isLeftSome = options === "some::some" || options === "some::none"
-  const isRightSome = options === "some::some" || options === "none::some"
+  switch (options) {
+    case "none::none":
+      await program.methods
+        .deployNnEvent(id, "some(title)", "some(description)", new BN(endDate))
+        .accountsStrict({
+          payer: signer.publicKey,
+          predictionEvent,
+          systemProgram: web3.SystemProgram.programId
+        })
+        .rpc()
 
-  await program.methods
-    .deployEvent(id, "some(title)", "some(description)", new BN(endDate))
-    .accountsStrict({
-      payer: signer.publicKey,
-      predictionEvent,
-      systemProgram: web3.SystemProgram.programId,
-      leftMint: isLeftSome ? leftMint : null,
-      rightMint: isRightSome ? rightMint : null,
-      leftPool: isLeftSome ? leftPool : null,
-      rightPool: isRightSome ? rightPool : null,
-      tokenProgram: spl.TOKEN_PROGRAM_ID,
-      rent: web3.SYSVAR_RENT_PUBKEY
-    })
-    .rpc()
+      break
+
+    case "some::some":
+      await program.methods
+        .deploySsEvent(id, "some(title)", "some(description)", new BN(endDate))
+        .accountsStrict({
+          payer: signer.publicKey,
+          leftMint,
+          rightMint,
+          leftPool,
+          rightPool,
+          rent: web3.SYSVAR_RENT_PUBKEY,
+          predictionEvent,
+          systemProgram: web3.SystemProgram.programId,
+          tokenProgram: spl.TOKEN_PROGRAM_ID
+        })
+        .rpc()
+
+      break
+
+    case "some::none":
+      await program.methods
+        .deploySnEvent(id, "some(title)", "some(description)", new BN(endDate))
+        .accountsStrict({
+          payer: signer.publicKey,
+          leftMint,
+          leftPool,
+          rent: web3.SYSVAR_RENT_PUBKEY,
+          predictionEvent,
+          systemProgram: web3.SystemProgram.programId,
+          tokenProgram: spl.TOKEN_PROGRAM_ID
+        })
+        .rpc()
+
+      break
+
+    case "none::some":
+      await program.methods
+        .deployNsEvent(id, "some(title)", "some(description)", new BN(endDate))
+        .accountsStrict({
+          payer: signer.publicKey,
+          rightMint,
+          rightPool,
+          rent: web3.SYSVAR_RENT_PUBKEY,
+          predictionEvent,
+          systemProgram: web3.SystemProgram.programId,
+          tokenProgram: spl.TOKEN_PROGRAM_ID
+        })
+        .rpc()
+
+      break
+
+    default:
+      break
+  }
 
   const predictionEventAcc = await program.account.predictionEvent.fetch(
     predictionEvent
