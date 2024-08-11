@@ -17,9 +17,21 @@ pub enum Error {
     #[msg("Missing sender's ata")]
     MissingSenderAta,
 
+    #[msg("Missing creator fee's ata")]
+    MissingCreatorFeeAta,
+
+    #[msg("Missing platform fee's ata")]
+    MissingPlatformFeeAta,
+
     #[msg("This event does not have sol left pool")]
     LeftEvent,
 
     #[msg("This event does not have sol right pool")]
     RightEvent,
+
+    #[msg("This event has not finsished yet, the end date is not reached or creator have not finished its")]
+    NotFinishedEvent,
+
+    #[msg("This event had finished")]
+    FinishedEvent,
 }
