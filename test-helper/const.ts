@@ -6,3 +6,5 @@ export const SELECTION = {
     right: {}
   }
 }
+
+export type Selection = (typeof SELECTION)[keyof typeof SELECTION]

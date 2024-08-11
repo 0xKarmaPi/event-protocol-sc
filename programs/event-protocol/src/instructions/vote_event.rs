@@ -81,7 +81,7 @@ pub fn handler(ctx: Context<VoteEvent>, selection: Selection, amount: u64) -> Re
 
     let current_timestamp = clock.unix_timestamp as u64;
 
-    if prediction_event.end_date > current_timestamp {
+    if current_timestamp > prediction_event.end_date {
         return err!(Error::FinishedEvent);
     }
 

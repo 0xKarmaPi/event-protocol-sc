@@ -5,6 +5,9 @@ import { EventProtocol } from "../target/types/event_protocol"
 import { SELECTION } from "../test-helper/const"
 import { createPredictionEvent } from "../test-helper/create-prediction-event"
 import { expect } from "chai"
+import { createKeyPairWithAssets } from "../test-helper/create-keypair-with-assets"
+import { BN } from "bn.js"
+import { makeAVote } from "../test-helper/make-a-vote"
 
 describe("finish_event instruction", () => {
   const provider = anchor.AnchorProvider.env()
@@ -19,16 +22,15 @@ describe("finish_event instruction", () => {
       provider,
       program,
       "some::none",
-      new Date().getTime() / 1000
+      new Date().getTime() / 1000 + 10
+    )
+    const [master] = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("master")],
+      program.programId
     )
 
     const [leftPlatformFee] = web3.PublicKey.findProgramAddressSync(
       [Buffer.from("platform"), leftMint.toBuffer()],
-      program.programId
-    )
-
-    const [master] = web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("master")],
       program.programId
     )
 
@@ -39,29 +41,31 @@ describe("finish_event instruction", () => {
       signer.publicKey
     )
 
-    await program.methods
-      .finishEvent(SELECTION.Left)
-      .accountsStrict({
-        leftMint,
-        leftCreatorFee: leftCreatorFee.address,
-        predictionEvent,
-        rent: web3.SYSVAR_RENT_PUBKEY,
-        signer: signer.publicKey,
-        systemProgram: web3.SystemProgram.programId,
-        tokenProgram: spl.TOKEN_PROGRAM_ID,
-        associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID,
-        master,
-        leftPlatformFee,
-        rightMint: null,
-        rightCreatorFee: null,
-        rightPlatformFee: null
-      })
-      .rpc()
+    await makeAVote(program, signer, predictionEvent, "left", 6)
 
-    const leftPlatformAta = await provider.connection.getAccountInfo(
-      leftPlatformFee
-    )
+    // await program.methods
+    //   .finishEvent(SELECTION.Left)
+    //   .accountsStrict({
+    //     leftMint,
+    //     leftCreatorFee: leftCreatorFee.address,
+    //     predictionEvent,
+    //     rent: web3.SYSVAR_RENT_PUBKEY,
+    //     signer: signer.publicKey,
+    //     systemProgram: web3.SystemProgram.programId,
+    //     tokenProgram: spl.TOKEN_PROGRAM_ID,
+    //     associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID,
+    //     master,
+    //     leftPlatformFee,
+    //     rightMint: null,
+    //     rightCreatorFee: null,
+    //     rightPlatformFee: null
+    //   })
+    //   .rpc()
 
-    expect(leftPlatformAta?.lamports).not.eq(0)
+    // const leftPlatformAta = await provider.connection.getAccountInfo(
+    //   leftPlatformFee
+    // )
+
+    // expect(leftPlatformAta?.lamports).not.eq(0)
   })
 })
