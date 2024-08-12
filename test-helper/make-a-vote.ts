@@ -68,7 +68,9 @@ export async function makeAVote(
         .signers([someone])
         .rpc()
 
-      console.log(`some one has voted left ${amount} tokens`)
+      console.log(
+        `${someone.publicKey.toBase58()} has voted left ${amount} tokens`
+      )
 
       return someone
     }
@@ -110,7 +112,7 @@ export async function makeAVote(
       .signers([someone])
       .rpc()
 
-    console.log("some one has voted left 6 sols")
+    console.log(`${someone.publicKey.toBase58()} has voted left ${amount} sols`)
 
     return someone
   }
@@ -166,7 +168,9 @@ export async function makeAVote(
       .signers([someone])
       .rpc()
 
-    console.log(`some one has voted right ${amount} tokens`)
+    console.log(
+      `${someone.publicKey.toBase58()} has voted right ${amount} tokens`
+    )
 
     return someone
   }
@@ -208,7 +212,7 @@ export async function makeAVote(
     .signers([someone])
     .rpc()
 
-  console.log(`some one has voted right ${amount} sols`)
+  console.log(`${someone.publicKey.toBase58()} has voted right ${amount} sols`)
 
   return someone
 }

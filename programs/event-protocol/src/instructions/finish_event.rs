@@ -155,7 +155,7 @@ fn handle_set_left(ctx: Context<FinishEvent>) -> Result<()> {
 
         transfer_token_from_prediction_event(
             prediction_event,
-            &pool,
+            pool,
             creator_fee_ata.to_account_info(),
             amount,
             token_program,
@@ -163,7 +163,7 @@ fn handle_set_left(ctx: Context<FinishEvent>) -> Result<()> {
 
         transfer_token_from_prediction_event(
             prediction_event,
-            &pool,
+            pool,
             platform_fee_ata.to_account_info(),
             amount,
             token_program,
@@ -213,7 +213,7 @@ fn handle_set_right(ctx: Context<FinishEvent>) -> Result<()> {
 
         transfer_token_from_prediction_event(
             prediction_event,
-            &pool,
+            pool,
             creator_fee_ata.to_account_info(),
             amount,
             token_program,
@@ -221,14 +221,14 @@ fn handle_set_right(ctx: Context<FinishEvent>) -> Result<()> {
 
         transfer_token_from_prediction_event(
             prediction_event,
-            &pool,
+            pool,
             platform_fee_ata.to_account_info(),
             amount,
             token_program,
         )?;
     } else {
         // transfer 2.5 % sol to creator and platform from sol left pool
-        let sol_left_pool = prediction_event.sol_right_pool.ok_or(Error::LeftEvent)?;
+        let sol_left_pool = prediction_event.sol_left_pool.ok_or(Error::LeftEvent)?;
 
         let amount = sol_left_pool / 1000 * 25;
 
