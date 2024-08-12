@@ -7,7 +7,7 @@ import { SELECTION } from "./const"
 
 export async function makeAVote(
   program: Program<EventProtocol>,
-  root: Wallet,
+  minter: Wallet,
   predictionEvent: web3.PublicKey,
   selection: "left" | "right",
   amount: number
@@ -20,7 +20,7 @@ export async function makeAVote(
     if (predictionEventAcc.leftMint) {
       const someone = await createKeyPairWithAssets(
         program.provider.connection,
-        root,
+        minter,
         3 + amount,
         [{ mint: predictionEventAcc.leftMint, balance: 10 }]
       )
@@ -48,7 +48,7 @@ export async function makeAVote(
       )
 
       await program.methods
-        .voteEvent(SELECTION.Left, new BN(amount))
+        .voteEvent(SELECTION.Left, new BN(amount * web3.LAMPORTS_PER_SOL))
         .accountsStrict({
           leftMint: predictionEventAcc.leftMint,
           leftPool: leftPool,
@@ -75,7 +75,7 @@ export async function makeAVote(
 
     const someone = await createKeyPairWithAssets(
       program.provider.connection,
-      root,
+      minter,
       3 + amount
     )
 
@@ -90,7 +90,7 @@ export async function makeAVote(
     )
 
     await program.methods
-      .voteEvent(SELECTION.Left, new BN(amount))
+      .voteEvent(SELECTION.Left, new BN(amount * web3.LAMPORTS_PER_SOL))
       .accountsStrict({
         leftMint: null,
         leftPool: null,
@@ -107,6 +107,7 @@ export async function makeAVote(
         ticket,
         tokenProgram: spl.TOKEN_PROGRAM_ID
       })
+      .signers([someone])
       .rpc()
 
     console.log("some one has voted left 6 sols")
@@ -117,7 +118,7 @@ export async function makeAVote(
   if (predictionEventAcc.rightMint) {
     const someone = await createKeyPairWithAssets(
       program.provider.connection,
-      root,
+      minter,
       3 + amount,
       [{ mint: predictionEventAcc.rightMint, balance: 10 }]
     )
@@ -145,7 +146,7 @@ export async function makeAVote(
     )
 
     await program.methods
-      .voteEvent(SELECTION.Right, new BN(amount))
+      .voteEvent(SELECTION.Right, new BN(amount * web3.LAMPORTS_PER_SOL))
       .accountsStrict({
         leftMint: null,
         leftPool: null,
@@ -162,6 +163,7 @@ export async function makeAVote(
         ticket,
         tokenProgram: spl.TOKEN_PROGRAM_ID
       })
+      .signers([someone])
       .rpc()
 
     console.log(`some one has voted right ${amount} tokens`)
@@ -171,7 +173,7 @@ export async function makeAVote(
 
   const someone = await createKeyPairWithAssets(
     program.provider.connection,
-    root,
+    minter,
     3 + amount
   )
 
@@ -186,7 +188,7 @@ export async function makeAVote(
   )
 
   await program.methods
-    .voteEvent(SELECTION.Right, new BN(6))
+    .voteEvent(SELECTION.Right, new BN(amount * web3.LAMPORTS_PER_SOL))
     .accountsStrict({
       leftMint: null,
       leftPool: null,
@@ -203,6 +205,7 @@ export async function makeAVote(
       ticket,
       tokenProgram: spl.TOKEN_PROGRAM_ID
     })
+    .signers([someone])
     .rpc()
 
   console.log(`some one has voted right ${amount} sols`)

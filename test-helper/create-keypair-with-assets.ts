@@ -8,7 +8,7 @@ type Token = {
 
 export async function createKeyPairWithAssets(
   connection: web3.Connection,
-  root: Wallet,
+  minter: Wallet,
   sols: number,
   tokens: Token[] = []
 ) {
@@ -26,17 +26,17 @@ export async function createKeyPairWithAssets(
 
     const ata = await spl.getOrCreateAssociatedTokenAccount(
       connection,
-      root.payer,
+      minter.payer,
       mint,
       wallet.publicKey
     )
 
     await spl.mintTo(
       connection,
-      root.payer,
+      minter.payer,
       mint,
       ata.address,
-      root.publicKey,
+      minter.publicKey,
       balance * web3.LAMPORTS_PER_SOL
     )
   }

@@ -32,12 +32,21 @@ pub struct FinishEvent<'r> {
         ],
         bump = prediction_event.bump,
     )]
-    prediction_event: Account<'r, PredictionEvent>,
+    prediction_event: Box<Account<'r, PredictionEvent>>,
 
     #[account(
         constraint = left_mint.key() == prediction_event.left_mint.ok_or(Error::NonLeftEvent)?.key()
     )]
-    left_mint: Option<Account<'r, Mint>>,
+    left_mint: Option<Box<Account<'r, Mint>>>,
+
+    #[account(
+        mut,
+        seeds = [b"left_pool", prediction_event.id.key().as_ref()],
+        token::mint = left_mint,
+        token::authority = prediction_event,
+        bump,
+    )]
+    left_pool: Option<Box<Account<'r, TokenAccount>>>,
 
     #[account(
         init_if_needed,
@@ -47,7 +56,7 @@ pub struct FinishEvent<'r> {
         token::authority = left_platform_fee,
         bump,
     )]
-    left_platform_fee: Option<Account<'r, TokenAccount>>,
+    left_platform_fee: Option<Box<Account<'r, TokenAccount>>>,
 
     #[account(
         init_if_needed,
@@ -55,22 +64,31 @@ pub struct FinishEvent<'r> {
         associated_token::mint = left_mint,
         associated_token::authority = signer,
     )]
-    left_creator_fee: Option<Account<'r, TokenAccount>>,
+    left_creator_fee: Option<Box<Account<'r, TokenAccount>>>,
 
     #[account(
         constraint = right_mint.key() == prediction_event.right_mint.ok_or(Error::NonRightEvent)?.key()
     )]
-    right_mint: Option<Account<'r, Mint>>,
+    right_mint: Option<Box<Account<'r, Mint>>>,
+
+    #[account(
+        mut,
+        seeds = [b"right_pool", prediction_event.id.key().as_ref()],
+        token::mint = right_mint,
+        token::authority = prediction_event,
+        bump,
+    )]
+    right_pool: Option<Box<Account<'r, TokenAccount>>>,
 
     #[account(
         init_if_needed,
         payer = signer,
-        seeds = [b"platform", prediction_event.left_mint.ok_or(Error::NonRightEvent)?.as_ref()],
+        seeds = [b"platform", prediction_event.right_mint.ok_or(Error::NonRightEvent)?.as_ref()],
         token::mint = right_mint,
         token::authority = right_platform_fee,
         bump,
     )]
-    right_platform_fee: Option<Account<'r, TokenAccount>>,
+    right_platform_fee: Option<Box<Account<'r, TokenAccount>>>,
 
     #[account(
         init_if_needed,
@@ -78,7 +96,7 @@ pub struct FinishEvent<'r> {
         associated_token::mint = right_mint,
         associated_token::authority = signer,
     )]
-    right_creator_fee: Option<Account<'r, TokenAccount>>,
+    right_creator_fee: Option<Box<Account<'r, TokenAccount>>>,
 
     token_program: Program<'r, Token>,
 
@@ -113,6 +131,7 @@ fn handle_set_left(ctx: Context<FinishEvent>) -> Result<()> {
     let signer = &ctx.accounts.signer;
     let token_program = &ctx.accounts.token_program;
     let master = &ctx.accounts.master;
+    let right_pool = &ctx.accounts.right_pool;
 
     if prediction_event.right_mint.is_some() {
         // transfer 2.5 % token to creator and platform from right pool
@@ -128,12 +147,15 @@ fn handle_set_left(ctx: Context<FinishEvent>) -> Result<()> {
             .as_ref()
             .ok_or(Error::MissingPlatformFeeAta)?;
 
-        let right_pool = prediction_event.right_pool.ok_or(Error::NonRightEvent)?;
+        let pool = right_pool.as_ref().ok_or(Error::NonRightEvent)?;
 
-        let amount = right_pool / 100 * 25;
+        let pool_amount = prediction_event.right_pool.ok_or(Error::NonRightEvent)?;
+
+        let amount = pool_amount / 1000 * 25;
 
         transfer_token_from_prediction_event(
             prediction_event,
+            &pool,
             creator_fee_ata.to_account_info(),
             amount,
             token_program,
@@ -141,6 +163,7 @@ fn handle_set_left(ctx: Context<FinishEvent>) -> Result<()> {
 
         transfer_token_from_prediction_event(
             prediction_event,
+            &pool,
             platform_fee_ata.to_account_info(),
             amount,
             token_program,
@@ -149,7 +172,7 @@ fn handle_set_left(ctx: Context<FinishEvent>) -> Result<()> {
         // transfer 2.5 % sol to creator and platform from sol right pool
         let sol_right_pool = prediction_event.sol_right_pool.ok_or(Error::RightEvent)?;
 
-        let amount = sol_right_pool / 100 * 25;
+        let amount = sol_right_pool / 1000 * 25;
 
         prediction_event.sub_lamports(amount)?;
         signer.add_lamports(amount)?;
@@ -166,6 +189,7 @@ fn handle_set_right(ctx: Context<FinishEvent>) -> Result<()> {
     let signer = &ctx.accounts.signer;
     let token_program = &ctx.accounts.token_program;
     let master = &ctx.accounts.master;
+    let left_pool = &ctx.accounts.left_pool;
 
     if prediction_event.left_mint.is_some() {
         // transfer 2.5 % token to creator and platform from left pool
@@ -181,12 +205,15 @@ fn handle_set_right(ctx: Context<FinishEvent>) -> Result<()> {
             .as_ref()
             .ok_or(Error::MissingPlatformFeeAta)?;
 
-        let left_pool = prediction_event.left_pool.ok_or(Error::NonLeftEvent)?;
+        let pool = left_pool.as_ref().ok_or(Error::NonLeftEvent)?;
 
-        let amount = left_pool / 100 * 25;
+        let pool_amount = prediction_event.left_pool.ok_or(Error::NonLeftEvent)?;
+
+        let amount = pool_amount / 1000 * 25;
 
         transfer_token_from_prediction_event(
             prediction_event,
+            &pool,
             creator_fee_ata.to_account_info(),
             amount,
             token_program,
@@ -194,6 +221,7 @@ fn handle_set_right(ctx: Context<FinishEvent>) -> Result<()> {
 
         transfer_token_from_prediction_event(
             prediction_event,
+            &pool,
             platform_fee_ata.to_account_info(),
             amount,
             token_program,
@@ -202,7 +230,7 @@ fn handle_set_right(ctx: Context<FinishEvent>) -> Result<()> {
         // transfer 2.5 % sol to creator and platform from sol left pool
         let sol_left_pool = prediction_event.sol_right_pool.ok_or(Error::LeftEvent)?;
 
-        let amount = sol_left_pool / 100 * 25;
+        let amount = sol_left_pool / 1000 * 25;
 
         prediction_event.sub_lamports(amount)?;
         signer.add_lamports(amount)?;
@@ -216,17 +244,19 @@ fn handle_set_right(ctx: Context<FinishEvent>) -> Result<()> {
 
 fn transfer_token_from_prediction_event<'r>(
     prediction_event: &Account<'r, PredictionEvent>,
+    pool: &Account<'r, TokenAccount>,
     to: AccountInfo<'r>,
     amount: u64,
     token_program: &Program<'r, Token>,
 ) -> Result<()> {
     let transfer_instruction = token::Transfer {
-        from: prediction_event.to_account_info(),
+        from: pool.to_account_info(),
         to,
         authority: prediction_event.to_account_info(),
     };
 
     let bump = prediction_event.bump;
+
     let seeds = &[
         PredictionEvent::SEED_PREFIX,
         prediction_event.id.as_ref(),

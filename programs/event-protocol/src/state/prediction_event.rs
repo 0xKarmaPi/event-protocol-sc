@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use super::Selection;
 
 #[account]
-#[derive(InitSpace)]
+#[derive(InitSpace, Debug)]
 pub struct PredictionEvent {
     pub id: Pubkey,
 

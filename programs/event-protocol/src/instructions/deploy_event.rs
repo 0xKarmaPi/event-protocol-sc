@@ -42,7 +42,7 @@ pub struct DeployEvent<'r> {
         token::mint = right_mint,
         token::authority = prediction_event,
         bump,
-      )]
+    )]
     right_pool: Option<Account<'r, TokenAccount>>,
 
     token_program: Program<'r, Token>,
