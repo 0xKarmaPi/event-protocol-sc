@@ -77,14 +77,12 @@ describe("finish_event instruction", () => {
       predictionEvent
     )
 
-    expect(
-      predictionEventAcc.solLeftPool?.eq(new BN(6 * web3.LAMPORTS_PER_SOL))
-    )
-    expect(
-      predictionEventAcc.solRightPool?.eq(new BN(4 * web3.LAMPORTS_PER_SOL))
-    )
+    expect(predictionEventAcc.leftPool.eq(new BN(6 * web3.LAMPORTS_PER_SOL)))
+    expect(predictionEventAcc.rightPool.eq(new BN(4 * web3.LAMPORTS_PER_SOL)))
+
     expect(predictionEventAcc.result?.left).be.not.undefined
     expect(predictionEventAcc.result?.right).be.undefined
+
     expect(predictionEventBalanceBefore - predictionEventBalanceAfter).eq(
       4 * web3.LAMPORTS_PER_SOL * 0.05
     )
@@ -159,14 +157,14 @@ describe("finish_event instruction", () => {
       predictionEvent
     )
 
-    expect(predictionEventAcc.leftPool?.eq(new BN(8 * web3.LAMPORTS_PER_SOL)))
-    expect(
-      predictionEventAcc.solRightPool?.eq(new BN(5 * web3.LAMPORTS_PER_SOL))
-    )
+    expect(predictionEventAcc.leftPool.eq(new BN(8 * web3.LAMPORTS_PER_SOL)))
+    expect(predictionEventAcc.rightPool.eq(new BN(5 * web3.LAMPORTS_PER_SOL)))
+
     expect(predictionEventAcc.result?.right).be.not.undefined
+    expect(predictionEventAcc.result?.left).be.undefined
 
     expect(creatorAta.amount).eq(BigInt(8 * web3.LAMPORTS_PER_SOL * 0.025))
-    expect(platformAta?.amount).eq(BigInt(8 * web3.LAMPORTS_PER_SOL * 0.025))
+    expect(platformAta.amount).eq(BigInt(8 * web3.LAMPORTS_PER_SOL * 0.025))
   })
 
   it(`finish a NS event`, async () => {
@@ -227,10 +225,8 @@ describe("finish_event instruction", () => {
 
     const rightPoolAta = await spl.getAccount(provider.connection, rightPool)
 
-    expect(
-      predictionEventAcc.solLeftPool?.eq(new BN(1.4 * web3.LAMPORTS_PER_SOL))
-    )
-    expect(predictionEventAcc.rightPool?.eq(new BN(web3.LAMPORTS_PER_SOL)))
+    expect(predictionEventAcc.leftPool.eq(new BN(1.4 * web3.LAMPORTS_PER_SOL)))
+    expect(predictionEventAcc.rightPool.eq(new BN(web3.LAMPORTS_PER_SOL)))
 
     expect(predictionEventAcc.result?.left).be.undefined
     expect(predictionEventAcc.result?.right).be.not.undefined
@@ -313,14 +309,12 @@ describe("finish_event instruction", () => {
       predictionEvent
     )
 
-    expect(predictionEventAcc.leftPool?.eq(new BN(1.1 * web3.LAMPORTS_PER_SOL)))
-    expect(
-      predictionEventAcc.rightPool?.eq(new BN(0.5 * web3.LAMPORTS_PER_SOL))
-    )
+    expect(predictionEventAcc.leftPool.eq(new BN(1.1 * web3.LAMPORTS_PER_SOL)))
+    expect(predictionEventAcc.rightPool.eq(new BN(0.5 * web3.LAMPORTS_PER_SOL)))
     expect(predictionEventAcc.result?.left).be.not.undefined
     expect(predictionEventAcc.result?.right).be.undefined
 
     expect(creatorAta.amount).eq(BigInt(0.5 * web3.LAMPORTS_PER_SOL * 0.025))
-    expect(platformAta?.amount).eq(BigInt(0.5 * web3.LAMPORTS_PER_SOL * 0.025))
+    expect(platformAta.amount).eq(BigInt(0.5 * web3.LAMPORTS_PER_SOL * 0.025))
   })
 })

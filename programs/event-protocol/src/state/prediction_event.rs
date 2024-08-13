@@ -23,13 +23,9 @@ pub struct PredictionEvent {
 
     pub right_mint: Option<Pubkey>,
 
-    pub sol_left_pool: Option<u64>,
+    pub left_pool: u64,
 
-    pub sol_right_pool: Option<u64>,
-
-    pub left_pool: Option<u64>,
-
-    pub right_pool: Option<u64>,
+    pub right_pool: u64,
 
     pub result: Option<Selection>,
 }

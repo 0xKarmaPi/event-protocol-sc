@@ -73,16 +73,10 @@ pub fn handler(
 
     if let Some(left_mint) = left_mint {
         prediction_event.left_mint = Some(left_mint.key());
-        prediction_event.left_pool = Some(0);
-    } else {
-        prediction_event.sol_left_pool = Some(0)
     }
 
     if let Some(right_mint) = right_mint {
         prediction_event.right_mint = Some(right_mint.key());
-        prediction_event.right_pool = Some(0);
-    } else {
-        prediction_event.sol_right_pool = Some(0)
     }
 
     emit!(DeployEvtEvent {

@@ -138,12 +138,7 @@ fn handle_vote_left(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
 
         anchor_spl::token::transfer(cpi_ctx, amount)?;
 
-        let left_pool = prediction_event
-            .left_pool
-            .as_mut()
-            .ok_or(Error::NonLeftEvent)?;
-
-        *left_pool += amount;
+        prediction_event.left_pool += amount;
     } else {
         let cpi_context = CpiContext::new(
             ctx.accounts.system_program.to_account_info(),
@@ -153,14 +148,9 @@ fn handle_vote_left(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
             },
         );
 
-        let sol_left_pool = prediction_event
-            .sol_left_pool
-            .as_mut()
-            .ok_or(Error::LeftEvent)?;
-
         system_program::transfer(cpi_context, amount)?;
 
-        *sol_left_pool += amount;
+        prediction_event.left_pool += amount;
     }
 
     Ok(())
@@ -197,12 +187,7 @@ fn handle_vote_right(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
 
         anchor_spl::token::transfer(cpi_ctx, amount)?;
 
-        let right_pool = prediction_event
-            .right_pool
-            .as_mut()
-            .ok_or(Error::NonRightEvent)?;
-
-        *right_pool += amount;
+        prediction_event.right_pool += amount;
     } else {
         let cpi_context = CpiContext::new(
             ctx.accounts.system_program.to_account_info(),
@@ -212,14 +197,9 @@ fn handle_vote_right(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
             },
         );
 
-        let sol_right_pool = prediction_event
-            .sol_right_pool
-            .as_mut()
-            .ok_or(Error::RightEvent)?;
-
         system_program::transfer(cpi_context, amount)?;
 
-        *sol_right_pool += amount;
+        prediction_event.right_pool += amount;
     }
 
     Ok(())

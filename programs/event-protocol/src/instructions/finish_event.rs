@@ -155,7 +155,7 @@ fn handle_set_left(ctx: Context<FinishEvent>) -> Result<()> {
 
         let pool = right_pool.as_ref().ok_or(Error::NonRightEvent)?;
 
-        let pool_amount = prediction_event.right_pool.ok_or(Error::NonRightEvent)?;
+        let pool_amount = prediction_event.right_pool;
 
         let amount = pool_amount / 1000 * 25;
 
@@ -176,9 +176,9 @@ fn handle_set_left(ctx: Context<FinishEvent>) -> Result<()> {
         )?;
     } else {
         // transfer 2.5 % sol to creator and platform from sol right pool
-        let sol_right_pool = prediction_event.sol_right_pool.ok_or(Error::RightEvent)?;
+        let pool_amount = prediction_event.right_pool;
 
-        let amount = sol_right_pool / 1000 * 25;
+        let amount = pool_amount / 1000 * 25;
 
         prediction_event.sub_lamports(amount)?;
         signer.add_lamports(amount)?;
@@ -213,7 +213,7 @@ fn handle_set_right(ctx: Context<FinishEvent>) -> Result<()> {
 
         let pool = left_pool.as_ref().ok_or(Error::NonLeftEvent)?;
 
-        let pool_amount = prediction_event.left_pool.ok_or(Error::NonLeftEvent)?;
+        let pool_amount = prediction_event.left_pool;
 
         let amount = pool_amount / 1000 * 25;
 
@@ -234,9 +234,9 @@ fn handle_set_right(ctx: Context<FinishEvent>) -> Result<()> {
         )?;
     } else {
         // transfer 2.5 % sol to creator and platform from sol left pool
-        let sol_left_pool = prediction_event.sol_left_pool.ok_or(Error::LeftEvent)?;
+        let pool_amount = prediction_event.left_pool;
 
-        let amount = sol_left_pool / 1000 * 25;
+        let amount = pool_amount / 1000 * 25;
 
         prediction_event.sub_lamports(amount)?;
         signer.add_lamports(amount)?;
