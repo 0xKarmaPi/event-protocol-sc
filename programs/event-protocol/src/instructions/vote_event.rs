@@ -21,7 +21,7 @@ pub struct VoteEvent<'r> {
         ],
         bump = prediction_event.bump,
     )]
-    prediction_event: Account<'r, PredictionEvent>,
+    prediction_event: Box<Account<'r, PredictionEvent>>,
 
     #[account(
         init_if_needed,

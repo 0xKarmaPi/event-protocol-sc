@@ -22,7 +22,7 @@ pub struct FinishEvent<'r> {
         ],
         bump = master.bump,
     )]
-    master: Account<'r, Master>,
+    master: Box<Account<'r, Master>>,
 
     #[account(
         mut,
