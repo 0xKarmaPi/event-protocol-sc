@@ -10,10 +10,10 @@ export async function createPredictionEvent(
   signer: anchor.Wallet,
   provider: anchor.AnchorProvider,
   program: anchor.Program<EventProtocol>,
-  options: Options
+  options: Options,
+  endDate = new Date().getTime() / 1000 + 7 * 24 * 60 * 60
 ) {
   const id = web3.Keypair.generate().publicKey
-  const endDate = new Date().getSeconds() + 7 * 24 * 60 * 60
 
   const [predictionEvent] = web3.PublicKey.findProgramAddressSync(
     [Buffer.from("prediction_event"), id.toBuffer()],

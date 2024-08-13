@@ -1,7 +1,9 @@
 use anchor_lang::prelude::*;
 
+use super::Selection;
+
 #[account]
-#[derive(InitSpace)] // automatically calculate the space required for the struct
+#[derive(InitSpace, Debug)]
 pub struct PredictionEvent {
     pub id: Pubkey,
 
@@ -28,6 +30,8 @@ pub struct PredictionEvent {
     pub left_pool: Option<u64>,
 
     pub right_pool: Option<u64>,
+
+    pub result: Option<Selection>,
 }
 
 impl PredictionEvent {

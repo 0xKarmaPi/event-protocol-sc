@@ -43,11 +43,11 @@ pub struct VoteEvent<'r> {
     left_sender_ata: Option<Account<'r, TokenAccount>>,
 
     #[account(
-      mut,
-      seeds = [b"left_pool", prediction_event.id.key().as_ref()],
-      token::mint = left_mint,
-      token::authority = prediction_event,
-      bump,
+        mut,
+        seeds = [b"left_pool", prediction_event.id.key().as_ref()],
+        token::mint = left_mint,
+        token::authority = prediction_event,
+        bump,
     )]
     left_pool: Option<Account<'r, TokenAccount>>,
 
@@ -75,6 +75,15 @@ pub struct VoteEvent<'r> {
 pub fn handler(ctx: Context<VoteEvent>, selection: Selection, amount: u64) -> Result<()> {
     let ticket = &mut ctx.accounts.ticket;
     let signer = &ctx.accounts.signer;
+    let prediction_event = &ctx.accounts.prediction_event;
+
+    let clock = Clock::get()?;
+
+    let current_timestamp = clock.unix_timestamp as u64;
+
+    if current_timestamp > prediction_event.end_date {
+        return err!(Error::FinishedEvent);
+    }
 
     ticket.creator = signer.key();
     ticket.amount += amount;

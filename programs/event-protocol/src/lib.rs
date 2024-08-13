@@ -30,4 +30,8 @@ pub mod event_protocol {
     pub fn vote_event(ctx: Context<VoteEvent>, selection: Selection, amount: u64) -> Result<()> {
         vote_event::handler(ctx, selection, amount)
     }
+
+    pub fn finish_event(ctx: Context<FinishEvent>, result: Selection) -> Result<()> {
+        finish_event::handler(ctx, result)
+    }
 }

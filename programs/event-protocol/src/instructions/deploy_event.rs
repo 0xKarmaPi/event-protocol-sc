@@ -24,12 +24,12 @@ pub struct DeployEvent<'r> {
     left_mint: Option<Account<'r, Mint>>,
 
     #[account(
-      init,
-      payer = payer,
-      seeds = [b"left_pool", id.key().as_ref()],
-      token::mint = left_mint,
-      token::authority = prediction_event,
-      bump,
+        init,
+        payer = payer,
+        seeds = [b"left_pool", id.key().as_ref()],
+        token::mint = left_mint,
+        token::authority = prediction_event,
+        bump,
     )]
     left_pool: Option<Account<'r, TokenAccount>>,
 
@@ -42,7 +42,7 @@ pub struct DeployEvent<'r> {
         token::mint = right_mint,
         token::authority = prediction_event,
         bump,
-      )]
+    )]
     right_pool: Option<Account<'r, TokenAccount>>,
 
     token_program: Program<'r, Token>,
