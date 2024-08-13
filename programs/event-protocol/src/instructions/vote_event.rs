@@ -89,10 +89,22 @@ pub fn handler(ctx: Context<VoteEvent>, selection: Selection, amount: u64) -> Re
     ticket.amount += amount;
     ticket.selection = selection;
 
+    let creator = signer.key();
+    let event_id = prediction_event.id;
+
     match selection {
-        Selection::Left => handle_vote_left(ctx, amount),
-        Selection::Right => handle_vote_right(ctx, amount),
-    }
+        Selection::Left => handle_vote_left(ctx, amount)?,
+        Selection::Right => handle_vote_right(ctx, amount)?,
+    };
+
+    emit!(VoteEvtEvent {
+        creator,
+        event_id,
+        amount,
+        selection,
+    });
+
+    Ok(())
 }
 
 fn handle_vote_left(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
@@ -211,4 +223,12 @@ fn handle_vote_right(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[event]
+struct VoteEvtEvent {
+    event_id: Pubkey,
+    creator: Pubkey,
+    selection: Selection,
+    amount: u64,
 }

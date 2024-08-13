@@ -85,5 +85,30 @@ pub fn handler(
         prediction_event.sol_right_pool = Some(0)
     }
 
+    emit!(DeployEvtEvent {
+        bump: prediction_event.bump,
+        creator: prediction_event.creator,
+        id: prediction_event.id,
+        key: prediction_event.key(),
+        description: prediction_event.description.clone(),
+        title: prediction_event.title.clone(),
+        end_date: prediction_event.end_date,
+        left_mint: prediction_event.left_mint,
+        right_mint: prediction_event.right_mint
+    });
+
     Ok(())
+}
+
+#[event]
+struct DeployEvtEvent {
+    key: Pubkey,
+    id: Pubkey,
+    bump: u8,
+    title: String,
+    description: String,
+    creator: Pubkey,
+    end_date: u64,
+    left_mint: Option<Pubkey>,
+    right_mint: Option<Pubkey>,
 }

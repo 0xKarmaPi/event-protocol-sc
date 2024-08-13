@@ -120,10 +120,16 @@ pub fn handler(ctx: Context<FinishEvent>, result: Selection) -> Result<()> {
 
     prediction_event.result = Some(result);
 
+    let event_id = prediction_event.id;
+
     match result {
-        Selection::Left => handle_set_left(ctx),
-        Selection::Right => handle_set_right(ctx),
-    }
+        Selection::Left => handle_set_left(ctx)?,
+        Selection::Right => handle_set_right(ctx)?,
+    };
+
+    emit!(FinishEvtEvent { event_id, result });
+
+    Ok(())
 }
 
 fn handle_set_left(ctx: Context<FinishEvent>) -> Result<()> {
@@ -274,4 +280,10 @@ fn transfer_token_from_prediction_event<'r>(
     anchor_spl::token::transfer(cpi_ctx, amount)?;
 
     Ok(())
+}
+
+#[event]
+struct FinishEvtEvent {
+    event_id: Pubkey,
+    result: Selection,
 }
