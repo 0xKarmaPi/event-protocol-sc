@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token::{self, Mint, Token, TokenAccount};
+use anchor_spl::token::{Mint, Token, TokenAccount};
 
 use crate::error::Error;
 use crate::master::Master;
@@ -103,8 +103,6 @@ pub struct FinishEvent<'r> {
     system_program: Program<'r, System>,
 
     associated_token_program: Program<'r, AssociatedToken>,
-
-    rent: Sysvar<'r, Rent>,
 }
 
 pub fn handler(ctx: Context<FinishEvent>, result: Selection) -> Result<()> {
@@ -133,11 +131,14 @@ pub fn handler(ctx: Context<FinishEvent>, result: Selection) -> Result<()> {
 }
 
 fn handle_set_left(ctx: Context<FinishEvent>) -> Result<()> {
-    let prediction_event = &ctx.accounts.prediction_event;
+    let prediction_event = &mut ctx.accounts.prediction_event;
     let signer = &ctx.accounts.signer;
     let token_program = &ctx.accounts.token_program;
     let master = &ctx.accounts.master;
     let right_pool = &ctx.accounts.right_pool;
+
+    let pool_amount = prediction_event.right_pool;
+    let amount = pool_amount / 1000 * 25;
 
     if prediction_event.right_mint.is_some() {
         // transfer 2.5 % token to creator and platform from right pool
@@ -155,11 +156,7 @@ fn handle_set_left(ctx: Context<FinishEvent>) -> Result<()> {
 
         let pool = right_pool.as_ref().ok_or(Error::NonRightEvent)?;
 
-        let pool_amount = prediction_event.right_pool;
-
-        let amount = pool_amount / 1000 * 25;
-
-        transfer_token_from_prediction_event(
+        PredictionEvent::transfer_tokens(
             prediction_event,
             pool,
             creator_fee_ata.to_account_info(),
@@ -167,7 +164,7 @@ fn handle_set_left(ctx: Context<FinishEvent>) -> Result<()> {
             token_program,
         )?;
 
-        transfer_token_from_prediction_event(
+        PredictionEvent::transfer_tokens(
             prediction_event,
             pool,
             platform_fee_ata.to_account_info(),
@@ -176,10 +173,6 @@ fn handle_set_left(ctx: Context<FinishEvent>) -> Result<()> {
         )?;
     } else {
         // transfer 2.5 % sol to creator and platform from sol right pool
-        let pool_amount = prediction_event.right_pool;
-
-        let amount = pool_amount / 1000 * 25;
-
         prediction_event.sub_lamports(amount)?;
         signer.add_lamports(amount)?;
 
@@ -187,15 +180,20 @@ fn handle_set_left(ctx: Context<FinishEvent>) -> Result<()> {
         master.add_lamports(amount)?;
     }
 
+    prediction_event.right_pool -= amount * 2; // 95%
+
     Ok(())
 }
 
 fn handle_set_right(ctx: Context<FinishEvent>) -> Result<()> {
-    let prediction_event = &ctx.accounts.prediction_event;
+    let prediction_event = &mut ctx.accounts.prediction_event;
     let signer = &ctx.accounts.signer;
     let token_program = &ctx.accounts.token_program;
     let master = &ctx.accounts.master;
     let left_pool = &ctx.accounts.left_pool;
+
+    let pool_amount = prediction_event.left_pool;
+    let amount = pool_amount / 1000 * 25;
 
     if prediction_event.left_mint.is_some() {
         // transfer 2.5 % token to creator and platform from left pool
@@ -213,11 +211,7 @@ fn handle_set_right(ctx: Context<FinishEvent>) -> Result<()> {
 
         let pool = left_pool.as_ref().ok_or(Error::NonLeftEvent)?;
 
-        let pool_amount = prediction_event.left_pool;
-
-        let amount = pool_amount / 1000 * 25;
-
-        transfer_token_from_prediction_event(
+        PredictionEvent::transfer_tokens(
             prediction_event,
             pool,
             creator_fee_ata.to_account_info(),
@@ -225,7 +219,7 @@ fn handle_set_right(ctx: Context<FinishEvent>) -> Result<()> {
             token_program,
         )?;
 
-        transfer_token_from_prediction_event(
+        PredictionEvent::transfer_tokens(
             prediction_event,
             pool,
             platform_fee_ata.to_account_info(),
@@ -234,10 +228,6 @@ fn handle_set_right(ctx: Context<FinishEvent>) -> Result<()> {
         )?;
     } else {
         // transfer 2.5 % sol to creator and platform from sol left pool
-        let pool_amount = prediction_event.left_pool;
-
-        let amount = pool_amount / 1000 * 25;
-
         prediction_event.sub_lamports(amount)?;
         signer.add_lamports(amount)?;
 
@@ -245,39 +235,7 @@ fn handle_set_right(ctx: Context<FinishEvent>) -> Result<()> {
         master.add_lamports(amount)?;
     }
 
-    Ok(())
-}
-
-fn transfer_token_from_prediction_event<'r>(
-    prediction_event: &Account<'r, PredictionEvent>,
-    pool: &Account<'r, TokenAccount>,
-    to: AccountInfo<'r>,
-    amount: u64,
-    token_program: &Program<'r, Token>,
-) -> Result<()> {
-    let transfer_instruction = token::Transfer {
-        from: pool.to_account_info(),
-        to,
-        authority: prediction_event.to_account_info(),
-    };
-
-    let bump = prediction_event.bump;
-
-    let seeds = &[
-        PredictionEvent::SEED_PREFIX,
-        prediction_event.id.as_ref(),
-        &[bump],
-    ];
-
-    let signer_seeds = &[&seeds[..]];
-
-    let cpi_ctx = CpiContext::new_with_signer(
-        token_program.to_account_info(),
-        transfer_instruction,
-        signer_seeds,
-    );
-
-    anchor_spl::token::transfer(cpi_ctx, amount)?;
+    prediction_event.left_pool -= amount * 2; // 95%
 
     Ok(())
 }

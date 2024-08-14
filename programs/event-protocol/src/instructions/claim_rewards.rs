@@ -1,7 +1,10 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, TokenAccount};
+use anchor_spl::{
+    associated_token::AssociatedToken,
+    token::{Mint, Token, TokenAccount},
+};
 
-use crate::{error::Error, prediction_event::PredictionEvent, Ticket};
+use crate::{error::Error, prediction_event::PredictionEvent, Selection, Ticket};
 
 #[derive(Accounts)]
 pub struct ClaimReward<'r> {
@@ -43,6 +46,14 @@ pub struct ClaimReward<'r> {
     left_pool: Option<Box<Account<'r, TokenAccount>>>,
 
     #[account(
+        init_if_needed,
+        payer = signer,
+        associated_token::mint = left_mint,
+        associated_token::authority = signer,
+    )]
+    signer_left_ata: Option<Box<Account<'r, TokenAccount>>>,
+
+    #[account(
         constraint = right_mint.key() == prediction_event.right_mint.ok_or(Error::NonRightEvent)?.key()
     )]
     right_mint: Option<Box<Account<'r, Mint>>>,
@@ -55,36 +66,106 @@ pub struct ClaimReward<'r> {
         bump,
     )]
     right_pool: Option<Box<Account<'r, TokenAccount>>>,
+
+    #[account(
+        init_if_needed,
+        payer = signer,
+        associated_token::mint = right_mint,
+        associated_token::authority = signer,
+    )]
+    signer_right_ata: Option<Box<Account<'r, TokenAccount>>>,
+
+    token_program: Program<'r, Token>,
+
+    system_program: Program<'r, System>,
+
+    associated_token_program: Program<'r, AssociatedToken>,
 }
 
-pub fn handler(_ctx: Context<ClaimReward>) -> Result<()> {
-    // let ticket = &ctx.accounts.ticket;
-    // let prediction_event = &ctx.accounts.prediction_event;
+pub fn handler(ctx: Context<ClaimReward>) -> Result<()> {
+    let prediction_event = &ctx.accounts.prediction_event;
+    let result = prediction_event.result.ok_or(Error::NotFinishedEvent)?;
 
-    // let result = prediction_event.result.ok_or(Error::NotFinishedEvent)?;
-
-    // match result {
-    //     Selection::Left => {
-    //         if let Some(right_mint) = prediction_event.right_mint {
-    //         } else {
-    //         }
-    //     }
-    //     Selection::Right => {}
-    // };
+    match result {
+        Selection::Left => handle_left_result(ctx)?,
+        Selection::Right => handle_right_result(ctx)?,
+    };
 
     Ok(())
 }
 
-// fn on_left(ctx: Context<ClaimReward>) -> Result<()> {
-//     // let ticket = &ctx.accounts.ticket;
-//     // let prediction_event = &ctx.accounts.prediction_event;
-//     // let signer = &ctx.accounts.signer;
+fn handle_left_result(ctx: Context<ClaimReward>) -> Result<()> {
+    let ticket = &ctx.accounts.ticket;
+    let prediction_event = &ctx.accounts.prediction_event;
+    let signer = &ctx.accounts.signer;
+    let token_program = &ctx.accounts.token_program;
 
-//     // if let Some(right_mint) = prediction_event.right_mint {
-//     // } else {
-//     //     let losing_pool = prediction_event.sol_right_pool.ok_or(Error::RightEvent)?;
-//     //     let winning_pool = prediction_event.sol_left_pool.ok_or(Error::LeftEvent)?;
-//     // }
+    let bet_amount = ticket.amount;
+    let losing_pool = prediction_event.right_pool;
+    let winning_pool = prediction_event.left_pool;
 
-//     Ok(())
-// }
+    let amount = bet_amount / winning_pool * losing_pool;
+
+    if prediction_event.right_mint.is_some() {
+        let right_pool = ctx
+            .accounts
+            .right_pool
+            .as_ref()
+            .ok_or(Error::NonRightEvent)?;
+
+        let signer_ata = ctx
+            .accounts
+            .signer_right_ata
+            .as_ref()
+            .ok_or(Error::MissingSenderAta)?;
+
+        PredictionEvent::transfer_tokens(
+            prediction_event,
+            right_pool,
+            signer_ata.to_account_info(),
+            amount,
+            token_program,
+        )?;
+    } else {
+        prediction_event.sub_lamports(amount)?;
+        signer.add_lamports(amount)?;
+    }
+
+    Ok(())
+}
+
+fn handle_right_result(ctx: Context<ClaimReward>) -> Result<()> {
+    let ticket = &ctx.accounts.ticket;
+    let prediction_event = &ctx.accounts.prediction_event;
+    let signer = &ctx.accounts.signer;
+    let token_program = &ctx.accounts.token_program;
+
+    let bet_amount = ticket.amount;
+    let losing_pool = prediction_event.left_pool;
+    let winning_pool = prediction_event.right_pool;
+
+    let amount = bet_amount / winning_pool * losing_pool;
+
+    if prediction_event.left_mint.is_some() {
+        let left_pool = ctx.accounts.left_pool.as_ref().ok_or(Error::NonLeftEvent)?;
+
+        let signer_ata = ctx
+            .accounts
+            .signer_left_ata
+            .as_ref()
+            .ok_or(Error::MissingSenderAta)?;
+
+        PredictionEvent::transfer_tokens(
+            prediction_event,
+            left_pool,
+            signer_ata.to_account_info(),
+            amount,
+            token_program,
+        )?;
+    } else {
+        prediction_event.sub_lamports(amount)?;
+        signer.add_lamports(amount)?;
+    }
+
+    Ok(())
+}

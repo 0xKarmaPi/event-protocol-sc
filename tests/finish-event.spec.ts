@@ -30,7 +30,7 @@ describe("finish_event instruction", () => {
       new Date().getTime() / 1000 + 5
     )
 
-    await Promise.all([
+    const [[goni, goniTicket]] = await Promise.all([
       makeAVote(program, signer, predictionEvent, "left", 2),
       makeAVote(program, signer, predictionEvent, "right", 3),
       makeAVote(program, signer, predictionEvent, "right", 1),
@@ -77,8 +77,11 @@ describe("finish_event instruction", () => {
       predictionEvent
     )
 
-    expect(predictionEventAcc.leftPool.eq(new BN(6 * web3.LAMPORTS_PER_SOL)))
-    expect(predictionEventAcc.rightPool.eq(new BN(4 * web3.LAMPORTS_PER_SOL)))
+    expect(predictionEventAcc.leftPool.eq(new BN(6 * web3.LAMPORTS_PER_SOL))).be
+      .true
+    expect(
+      predictionEventAcc.rightPool.eq(new BN(4 * web3.LAMPORTS_PER_SOL * 0.95))
+    ).be.true
 
     expect(predictionEventAcc.result?.left).be.not.undefined
     expect(predictionEventAcc.result?.right).be.undefined
@@ -89,6 +92,29 @@ describe("finish_event instruction", () => {
     expect(masterBlanceAfter).eq(
       masterBlanceBefore + 4 * web3.LAMPORTS_PER_SOL * 0.025
     )
+
+    await program.methods
+      .claimRewards()
+      .accountsStrict({
+        leftMint: null,
+        leftPool: null,
+        signerLeftAta: null,
+
+        rightMint: null,
+        rightPool: null,
+        signerRightAta: null,
+
+        predictionEvent,
+        ticket: goniTicket,
+        signer: goni.publicKey,
+
+        rent: web3.SYSVAR_RENT_PUBKEY,
+        systemProgram: web3.SystemProgram.programId,
+        tokenProgram: spl.TOKEN_PROGRAM_ID,
+        associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID
+      })
+      .signers([goni])
+      .rpc()
   })
 
   it(`finish a SN event`, async () => {
@@ -157,8 +183,11 @@ describe("finish_event instruction", () => {
       predictionEvent
     )
 
-    expect(predictionEventAcc.leftPool.eq(new BN(8 * web3.LAMPORTS_PER_SOL)))
+    expect(
+      predictionEventAcc.leftPool.eq(new BN(8 * web3.LAMPORTS_PER_SOL * 0.95))
+    ).be.true
     expect(predictionEventAcc.rightPool.eq(new BN(5 * web3.LAMPORTS_PER_SOL)))
+      .be.true
 
     expect(predictionEventAcc.result?.right).be.not.undefined
     expect(predictionEventAcc.result?.left).be.undefined
@@ -225,8 +254,11 @@ describe("finish_event instruction", () => {
 
     const rightPoolAta = await spl.getAccount(provider.connection, rightPool)
 
-    expect(predictionEventAcc.leftPool.eq(new BN(1.4 * web3.LAMPORTS_PER_SOL)))
-    expect(predictionEventAcc.rightPool.eq(new BN(web3.LAMPORTS_PER_SOL)))
+    expect(
+      predictionEventAcc.leftPool.eq(new BN(1.4 * web3.LAMPORTS_PER_SOL * 0.95))
+    ).be.true
+    expect(predictionEventAcc.rightPool.eq(new BN(web3.LAMPORTS_PER_SOL))).be
+      .true
 
     expect(predictionEventAcc.result?.left).be.undefined
     expect(predictionEventAcc.result?.right).be.not.undefined
@@ -310,7 +342,12 @@ describe("finish_event instruction", () => {
     )
 
     expect(predictionEventAcc.leftPool.eq(new BN(1.1 * web3.LAMPORTS_PER_SOL)))
-    expect(predictionEventAcc.rightPool.eq(new BN(0.5 * web3.LAMPORTS_PER_SOL)))
+      .be.true
+    expect(
+      predictionEventAcc.rightPool.eq(
+        new BN(0.5 * web3.LAMPORTS_PER_SOL * 0.95)
+      )
+    ).be.true
     expect(predictionEventAcc.result?.left).be.not.undefined
     expect(predictionEventAcc.result?.right).be.undefined
 

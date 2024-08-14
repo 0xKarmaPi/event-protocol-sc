@@ -68,8 +68,6 @@ pub struct VoteEvent<'r> {
     system_program: Program<'r, System>,
 
     token_program: Program<'r, Token>,
-
-    rent: Sysvar<'r, Rent>,
 }
 
 pub fn handler(ctx: Context<VoteEvent>, selection: Selection, amount: u64) -> Result<()> {

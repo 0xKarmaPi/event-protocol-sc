@@ -11,7 +11,7 @@ export async function makeAVote(
   predictionEvent: web3.PublicKey,
   selection: "left" | "right",
   amount: number
-) {
+): Promise<[web3.Keypair, web3.PublicKey]> {
   const predictionEventAcc = await program.account.predictionEvent.fetch(
     predictionEvent
   )
@@ -72,7 +72,7 @@ export async function makeAVote(
         `${someone.publicKey.toBase58()} has voted left ${amount} tokens`
       )
 
-      return someone
+      return [someone, ticket]
     }
 
     const someone = await createKeyPairWithAssets(
@@ -114,7 +114,7 @@ export async function makeAVote(
 
     console.log(`${someone.publicKey.toBase58()} has voted left ${amount} sols`)
 
-    return someone
+    return [someone, ticket]
   }
 
   if (predictionEventAcc.rightMint) {
@@ -172,7 +172,7 @@ export async function makeAVote(
       `${someone.publicKey.toBase58()} has voted right ${amount} tokens`
     )
 
-    return someone
+    return [someone, ticket]
   }
 
   const someone = await createKeyPairWithAssets(
@@ -214,5 +214,5 @@ export async function makeAVote(
 
   console.log(`${someone.publicKey.toBase58()} has voted right ${amount} sols`)
 
-  return someone
+  return [someone, ticket]
 }

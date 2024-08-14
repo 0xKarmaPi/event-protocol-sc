@@ -48,8 +48,6 @@ pub struct DeployEvent<'r> {
     token_program: Program<'r, Token>,
 
     system_program: Program<'r, System>,
-
-    rent: Sysvar<'r, Rent>,
 }
 
 pub fn handler(

@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token::{self, Token, TokenAccount};
 
 use super::Selection;
 
@@ -32,4 +33,34 @@ pub struct PredictionEvent {
 
 impl PredictionEvent {
     pub const SEED_PREFIX: &'static [u8; 16] = b"prediction_event";
+
+    pub fn transfer_tokens<'r>(
+        prediction_event: &Account<'r, Self>,
+        pool: &Account<'r, TokenAccount>,
+        to: AccountInfo<'r>,
+        amount: u64,
+        token_program: &Program<'r, Token>,
+    ) -> Result<()> {
+        let transfer_instruction = token::Transfer {
+            from: pool.to_account_info(),
+            to,
+            authority: prediction_event.to_account_info(),
+        };
+
+        let bump = prediction_event.bump;
+
+        let seeds = &[Self::SEED_PREFIX, prediction_event.id.as_ref(), &[bump]];
+
+        let signer_seeds = &[&seeds[..]];
+
+        let cpi_ctx = CpiContext::new_with_signer(
+            token_program.to_account_info(),
+            transfer_instruction,
+            signer_seeds,
+        );
+
+        anchor_spl::token::transfer(cpi_ctx, amount)?;
+
+        Ok(())
+    }
 }
