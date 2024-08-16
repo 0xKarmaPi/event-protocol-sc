@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::token::{Mint, Token};
 
-use crate::prediction_event::PredictionEvent;
+use crate::{events::DeployEvtEvent, state::PredictionEvent};
 
 #[derive(Accounts)]
 #[instruction(id:  Pubkey)]
@@ -23,27 +23,7 @@ pub struct DeployEvent<'r> {
 
     left_mint: Option<Account<'r, Mint>>,
 
-    #[account(
-        init,
-        payer = payer,
-        seeds = [b"left_pool", id.key().as_ref()],
-        token::mint = left_mint,
-        token::authority = prediction_event,
-        bump,
-    )]
-    left_pool: Option<Account<'r, TokenAccount>>,
-
     right_mint: Option<Account<'r, Mint>>,
-
-    #[account(
-        init,
-        payer = payer,
-        seeds = [b"right_pool", id.key().as_ref()],
-        token::mint = right_mint,
-        token::authority = prediction_event,
-        bump,
-    )]
-    right_pool: Option<Account<'r, TokenAccount>>,
 
     token_program: Program<'r, Token>,
 
@@ -86,21 +66,9 @@ pub fn handler(
         title: prediction_event.title.clone(),
         end_date: prediction_event.end_date,
         left_mint: prediction_event.left_mint,
-        right_mint: prediction_event.right_mint
+        right_mint: prediction_event.right_mint,
+        start_date: prediction_event.start_date
     });
 
     Ok(())
-}
-
-#[event]
-struct DeployEvtEvent {
-    key: Pubkey,
-    id: Pubkey,
-    bump: u8,
-    title: String,
-    description: String,
-    creator: Pubkey,
-    end_date: u64,
-    left_mint: Option<Pubkey>,
-    right_mint: Option<Pubkey>,
 }

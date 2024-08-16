@@ -1,11 +1,12 @@
+mod constants;
 mod error;
+mod events;
 mod instructions;
 mod state;
 
 use anchor_lang::prelude::*;
-
 use instructions::*;
-use state::*;
+use state::Selection;
 
 declare_id!("Fz24nmvrheUJJXbSwbMkP6FpMFFxbjuDqV99AZLWmASf");
 
@@ -25,6 +26,20 @@ pub mod event_protocol {
         end_date: u64,
     ) -> Result<()> {
         deploy_event::handler(ctx, id, title, description, end_date)
+    }
+
+    pub fn create_token_event_pool(
+        _ctx: Context<CreateTokenEventPool>,
+        _event_id: Pubkey,
+    ) -> Result<()> {
+        create_token_event_pool::handler(_ctx, _event_id)
+    }
+
+    pub fn create_token_platform_pool(
+        _ctx: Context<CreateTokenPlatformPool>,
+        _event_id: Pubkey,
+    ) -> Result<()> {
+        create_token_platform_pool::handler(_ctx, _event_id)
     }
 
     pub fn vote_event(ctx: Context<VoteEvent>, selection: Selection, amount: u64) -> Result<()> {

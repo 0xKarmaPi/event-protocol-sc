@@ -34,4 +34,10 @@ pub enum Error {
 
     #[msg("This event had finished")]
     FinishedEvent,
+
+    #[msg("Missing left mint")]
+    MissingLeftMint,
+
+    #[msg("Missing left mint")]
+    MissingRightMint,
 }

@@ -1,4 +1,7 @@
-pub mod master;
-pub mod prediction_event;
-pub mod ticket;
+mod master;
+mod prediction_event;
+mod ticket;
+
+pub use master::*;
+pub use prediction_event::*;
 pub use ticket::*;

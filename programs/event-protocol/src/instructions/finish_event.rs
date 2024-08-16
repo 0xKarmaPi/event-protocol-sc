@@ -3,9 +3,7 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
 use crate::error::Error;
-use crate::master::Master;
-use crate::prediction_event::PredictionEvent;
-use crate::Selection;
+use crate::state::{Master, PredictionEvent, Selection};
 
 #[derive(Accounts)]
 pub struct FinishEvent<'r> {
@@ -49,8 +47,7 @@ pub struct FinishEvent<'r> {
     left_pool: Option<Box<Account<'r, TokenAccount>>>,
 
     #[account(
-        init_if_needed,
-        payer = signer,
+        mut,
         seeds = [b"platform", prediction_event.left_mint.ok_or(Error::NonLeftEvent)?.as_ref()],
         token::mint = left_mint,
         token::authority = left_platform_fee,
@@ -59,8 +56,7 @@ pub struct FinishEvent<'r> {
     left_platform_fee: Option<Box<Account<'r, TokenAccount>>>,
 
     #[account(
-        init_if_needed,
-        payer = signer,
+        mut,
         associated_token::mint = left_mint,
         associated_token::authority = signer,
     )]
@@ -81,8 +77,7 @@ pub struct FinishEvent<'r> {
     right_pool: Option<Box<Account<'r, TokenAccount>>>,
 
     #[account(
-        init_if_needed,
-        payer = signer,
+        mut,
         seeds = [b"platform", prediction_event.right_mint.ok_or(Error::NonRightEvent)?.as_ref()],
         token::mint = right_mint,
         token::authority = right_platform_fee,
@@ -91,8 +86,7 @@ pub struct FinishEvent<'r> {
     right_platform_fee: Option<Box<Account<'r, TokenAccount>>>,
 
     #[account(
-        init_if_needed,
-        payer = signer,
+        mut,
         associated_token::mint = right_mint,
         associated_token::authority = signer,
     )]

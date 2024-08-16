@@ -3,8 +3,7 @@ use anchor_spl::token::{Mint, Token, TokenAccount};
 
 use crate::{
     error::Error,
-    prediction_event::PredictionEvent,
-    ticket::{Selection, Ticket},
+    state::{PredictionEvent, Selection, Ticket},
 };
 
 #[derive(Accounts)]

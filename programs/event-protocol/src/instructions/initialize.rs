@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::master::Master;
+use crate::state::Master;
 
 #[derive(Accounts)]
 pub struct Initialize<'r> {
