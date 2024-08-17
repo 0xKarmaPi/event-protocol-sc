@@ -5,9 +5,16 @@ import { EventProtocol } from "../target/types/event_protocol"
 import { createPredictionEvent } from "../test-helper/create-prediction-event"
 import { makeAVote } from "../test-helper/make-a-vote"
 import { sleep } from "../test-helper/sleep"
-import { SELECTION } from "../test-helper/const"
+import {
+  MASTER_SEEDS,
+  SIDE,
+  TOKENS_PLATFORM_POOL_SEEDS_PREFIX
+} from "../test-helper/const"
 import { expect } from "chai"
 import { BN } from "bn.js"
+import { mock } from "../test-helper/mock"
+import { bnLamports } from "../test-helper/transform"
+import { addCreateAtaInsIfNotExist } from "../test-helper/add-create-ata-ins-if-not-exist"
 
 describe("finish_event instruction", () => {
   const provider = anchor.AnchorProvider.env()
@@ -17,294 +24,72 @@ describe("finish_event instruction", () => {
   const signer = provider.wallet as anchor.Wallet
 
   const [master] = web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("master")],
+    [MASTER_SEEDS],
     program.programId
   )
 
-  it("finish a NN event", async () => {
-    const { predictionEvent } = await createPredictionEvent(
-      signer,
-      provider,
-      program,
-      "none::none",
-      new Date().getTime() / 1000 + 5
-    )
+  let goni: anchor.web3.Keypair
+  let asura: anchor.web3.Keypair
+  let leftMint: anchor.web3.PublicKey
+  let rightMint: anchor.web3.PublicKey
 
-    const [[goni, goniTicket]] = await Promise.all([
-      makeAVote(program, signer, predictionEvent, "left", 2),
-      makeAVote(program, signer, predictionEvent, "right", 3),
-      makeAVote(program, signer, predictionEvent, "right", 1),
-      makeAVote(program, signer, predictionEvent, "left", 4),
-      sleep(5000)
-    ])
+  before(async () => {
+    const init = await mock(provider)
 
-    const predictionEventBalanceBefore = await provider.connection.getBalance(
-      predictionEvent
-    )
-    const masterBlanceBefore = await provider.connection.getBalance(master)
-
-    await program.methods
-      .finishEvent(SELECTION.Left)
-      .accountsStrict({
-        leftMint: null,
-        leftCreatorFee: null,
-        leftPlatformFee: null,
-        leftPool: null,
-
-        rightMint: null,
-        rightCreatorFee: null,
-        rightPlatformFee: null,
-        rightPool: null,
-
-        master,
-        predictionEvent,
-
-        rent: web3.SYSVAR_RENT_PUBKEY,
-        signer: signer.publicKey,
-        systemProgram: web3.SystemProgram.programId,
-        tokenProgram: spl.TOKEN_PROGRAM_ID,
-        associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID
-      })
-      .rpc()
-
-    const predictionEventBalanceAfter = await provider.connection.getBalance(
-      predictionEvent
-    )
-
-    const masterBlanceAfter = await provider.connection.getBalance(master)
-
-    const predictionEventAcc = await program.account.predictionEvent.fetch(
-      predictionEvent
-    )
-
-    expect(predictionEventAcc.leftPool.eq(new BN(6 * web3.LAMPORTS_PER_SOL))).be
-      .true
-    expect(
-      predictionEventAcc.rightPool.eq(new BN(4 * web3.LAMPORTS_PER_SOL * 0.95))
-    ).be.true
-
-    expect(predictionEventAcc.result?.left).be.not.undefined
-    expect(predictionEventAcc.result?.right).be.undefined
-
-    expect(predictionEventBalanceBefore - predictionEventBalanceAfter).eq(
-      4 * web3.LAMPORTS_PER_SOL * 0.05
-    )
-    expect(masterBlanceAfter).eq(
-      masterBlanceBefore + 4 * web3.LAMPORTS_PER_SOL * 0.025
-    )
-
-    await program.methods
-      .claimRewards()
-      .accountsStrict({
-        leftMint: null,
-        leftPool: null,
-        signerLeftAta: null,
-
-        rightMint: null,
-        rightPool: null,
-        signerRightAta: null,
-
-        predictionEvent,
-        ticket: goniTicket,
-        signer: goni.publicKey,
-
-        rent: web3.SYSVAR_RENT_PUBKEY,
-        systemProgram: web3.SystemProgram.programId,
-        tokenProgram: spl.TOKEN_PROGRAM_ID,
-        associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID
-      })
-      .signers([goni])
-      .rpc()
-  })
-
-  it(`finish a SN event`, async () => {
-    const { leftMint, predictionEvent, leftPool } = await createPredictionEvent(
-      signer,
-      provider,
-      program,
-      "some::none",
-      new Date().getTime() / 1000 + 5
-    )
-
-    const [leftPlatformFee] = web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("platform"), leftMint.toBuffer()],
-      program.programId
-    )
-
-    const leftCreatorFee = await spl.getOrCreateAssociatedTokenAccount(
-      provider.connection,
-      signer.payer,
-      leftMint,
-      signer.publicKey
-    )
-
-    await Promise.all([
-      makeAVote(program, signer, predictionEvent, "left", 6),
-      makeAVote(program, signer, predictionEvent, "right", 3),
-      makeAVote(program, signer, predictionEvent, "right", 2),
-      makeAVote(program, signer, predictionEvent, "left", 2),
-      sleep(5000)
-    ])
-
-    await program.methods
-      .finishEvent(SELECTION.Right)
-      .accountsStrict({
-        leftMint,
-        leftCreatorFee: leftCreatorFee.address,
-        leftPlatformFee,
-        leftPool,
-
-        master,
-        predictionEvent,
-
-        rent: web3.SYSVAR_RENT_PUBKEY,
-        signer: signer.publicKey,
-        systemProgram: web3.SystemProgram.programId,
-        tokenProgram: spl.TOKEN_PROGRAM_ID,
-        associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID,
-        rightMint: null,
-        rightCreatorFee: null,
-        rightPlatformFee: null,
-        rightPool: null
-      })
-      .rpc()
-
-    const platformAta = await spl.getAccount(
-      provider.connection,
-      leftPlatformFee
-    )
-
-    const creatorAta = await spl.getAccount(
-      provider.connection,
-      leftCreatorFee.address
-    )
-
-    const predictionEventAcc = await program.account.predictionEvent.fetch(
-      predictionEvent
-    )
-
-    expect(
-      predictionEventAcc.leftPool.eq(new BN(8 * web3.LAMPORTS_PER_SOL * 0.95))
-    ).be.true
-    expect(predictionEventAcc.rightPool.eq(new BN(5 * web3.LAMPORTS_PER_SOL)))
-      .be.true
-
-    expect(predictionEventAcc.result?.right).be.not.undefined
-    expect(predictionEventAcc.result?.left).be.undefined
-
-    expect(creatorAta.amount).eq(BigInt(8 * web3.LAMPORTS_PER_SOL * 0.025))
-    expect(platformAta.amount).eq(BigInt(8 * web3.LAMPORTS_PER_SOL * 0.025))
-  })
-
-  it(`finish a NS event`, async () => {
-    const { predictionEvent, rightPool } = await createPredictionEvent(
-      signer,
-      provider,
-      program,
-      "none::some",
-      new Date().getTime() / 1000 + 5
-    )
-
-    await Promise.all([
-      makeAVote(program, signer, predictionEvent, "left", 0.4),
-      makeAVote(program, signer, predictionEvent, "left", 1),
-      makeAVote(program, signer, predictionEvent, "right", 0.2),
-      makeAVote(program, signer, predictionEvent, "right", 0.8),
-      sleep(5000)
-    ])
-
-    const predictionEventBalanceBefore = await provider.connection.getBalance(
-      predictionEvent
-    )
-    const masterBlanceBefore = await provider.connection.getBalance(master)
-
-    await program.methods
-      .finishEvent(SELECTION.Right)
-      .accountsStrict({
-        leftMint: null,
-        leftCreatorFee: null,
-        leftPlatformFee: null,
-        leftPool: null,
-
-        rightMint: null,
-        rightCreatorFee: null,
-        rightPlatformFee: null,
-        rightPool: null,
-
-        master,
-        predictionEvent,
-
-        rent: web3.SYSVAR_RENT_PUBKEY,
-        signer: signer.publicKey,
-        systemProgram: web3.SystemProgram.programId,
-        tokenProgram: spl.TOKEN_PROGRAM_ID,
-        associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID
-      })
-      .rpc()
-
-    const predictionEventBalanceAfter = await provider.connection.getBalance(
-      predictionEvent
-    )
-
-    const masterBlanceAfter = await provider.connection.getBalance(master)
-
-    const predictionEventAcc = await program.account.predictionEvent.fetch(
-      predictionEvent
-    )
-
-    const rightPoolAta = await spl.getAccount(provider.connection, rightPool)
-
-    expect(
-      predictionEventAcc.leftPool.eq(new BN(1.4 * web3.LAMPORTS_PER_SOL * 0.95))
-    ).be.true
-    expect(predictionEventAcc.rightPool.eq(new BN(web3.LAMPORTS_PER_SOL))).be
-      .true
-
-    expect(predictionEventAcc.result?.left).be.undefined
-    expect(predictionEventAcc.result?.right).be.not.undefined
-
-    expect(predictionEventBalanceBefore - predictionEventBalanceAfter).eq(
-      1.4 * web3.LAMPORTS_PER_SOL * 0.05
-    )
-    expect(masterBlanceAfter).eq(
-      masterBlanceBefore + 1.4 * web3.LAMPORTS_PER_SOL * 0.025
-    )
-
-    expect(rightPoolAta.amount).eq(BigInt(web3.LAMPORTS_PER_SOL))
+    goni = init.goni
+    asura = init.asura
+    leftMint = init.leftMint
+    rightMint = init.rightMint
   })
 
   it("finish a SS event", async () => {
-    const { rightMint, rightPool, predictionEvent } =
-      await createPredictionEvent(
-        signer,
-        provider,
-        program,
-        "some::some",
-        new Date().getTime() / 1000 + 5
-      )
+    const { rightPool, event, id } = await createPredictionEvent(
+      signer,
+      program,
+      {
+        kind: "some::some",
+        leftMint,
+        rightMint
+      }
+    )
 
-    const [rightPlatformFee] = web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("platform"), rightMint.toBuffer()],
+    const [rightPlatformPool] = web3.PublicKey.findProgramAddressSync(
+      [TOKENS_PLATFORM_POOL_SEEDS_PREFIX, rightMint.toBuffer()],
       program.programId
     )
 
-    const rightCreatorFee = await spl.getOrCreateAssociatedTokenAccount(
+    const transaction = new web3.Transaction()
+
+    const createRightPlatformPoolIns = await program.methods
+      .createTokenPlatformPool(id)
+      .accountsStrict({
+        mint: rightMint,
+        platformPool: rightPlatformPool,
+        signer: signer.publicKey,
+        systemProgram: web3.SystemProgram.programId,
+        tokenProgram: spl.TOKEN_PROGRAM_ID
+      })
+      .instruction()
+
+    transaction.add(createRightPlatformPoolIns)
+
+    const rightCreatorFee = await addCreateAtaInsIfNotExist(
+      transaction,
       provider.connection,
-      signer.payer,
+      signer.publicKey,
       rightMint,
       signer.publicKey
     )
 
     await Promise.all([
-      makeAVote(program, signer, predictionEvent, "left", 0.5),
-      makeAVote(program, signer, predictionEvent, "left", 0.6),
-      makeAVote(program, signer, predictionEvent, "right", 0.3),
-      makeAVote(program, signer, predictionEvent, "right", 0.2),
-      sleep(5000)
+      makeAVote(goni, program, event, "left", 0.5),
+      makeAVote(asura, program, event, "right", 0.6)
     ])
 
-    await program.methods
-      .finishEvent(SELECTION.Left)
+    await sleep(3000)
+
+    const finishEventIns = await program.methods
+      .finishEvent(SIDE.Left)
       .accountsStrict({
         leftMint: null,
         leftCreatorFee: null,
@@ -312,46 +97,44 @@ describe("finish_event instruction", () => {
         leftPool: null,
 
         rightMint,
-        rightCreatorFee: rightCreatorFee.address,
-        rightPlatformFee,
+        rightCreatorFee: rightCreatorFee,
+        rightPlatformFee: rightPlatformPool,
         rightPool,
 
         master,
-        predictionEvent,
+        event,
 
-        rent: web3.SYSVAR_RENT_PUBKEY,
         signer: signer.publicKey,
         systemProgram: web3.SystemProgram.programId,
         tokenProgram: spl.TOKEN_PROGRAM_ID,
         associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID
       })
-      .rpc()
+      .instruction()
+
+    transaction.add(finishEventIns)
+
+    await web3.sendAndConfirmTransaction(provider.connection, transaction, [
+      signer.payer
+    ])
 
     const platformAta = await spl.getAccount(
       provider.connection,
-      rightPlatformFee
+      rightPlatformPool
     )
 
     const creatorAta = await spl.getAccount(
       provider.connection,
-      rightCreatorFee.address
+      rightCreatorFee
     )
 
-    const predictionEventAcc = await program.account.predictionEvent.fetch(
-      predictionEvent
-    )
+    const eventAcc = await program.account.predictionEvent.fetch(event)
 
-    expect(predictionEventAcc.leftPool.eq(new BN(1.1 * web3.LAMPORTS_PER_SOL)))
-      .be.true
-    expect(
-      predictionEventAcc.rightPool.eq(
-        new BN(0.5 * web3.LAMPORTS_PER_SOL * 0.95)
-      )
-    ).be.true
-    expect(predictionEventAcc.result?.left).be.not.undefined
-    expect(predictionEventAcc.result?.right).be.undefined
+    expect(eventAcc.leftPool.eq(bnLamports(0.5))).be.true
+    expect(eventAcc.rightPool.eq(bnLamports(0.6 * 0.95))).be.true
+    expect(eventAcc.result?.left).be.not.undefined
+    expect(eventAcc.result?.right).be.undefined
 
-    expect(creatorAta.amount).eq(BigInt(0.5 * web3.LAMPORTS_PER_SOL * 0.025))
-    expect(platformAta.amount).eq(BigInt(0.5 * web3.LAMPORTS_PER_SOL * 0.025))
+    expect(creatorAta.amount).eq(BigInt(0.6 * web3.LAMPORTS_PER_SOL * 0.025))
+    expect(platformAta.amount).eq(BigInt(0.6 * web3.LAMPORTS_PER_SOL * 0.025))
   })
 })

@@ -1,6 +1,8 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
+use crate::constants::TOKENS_PLATFORM_POOL_SEEDS_PREFIX;
+
 #[derive(Accounts)]
 pub struct CreateTokenPlatformPool<'r> {
     #[account(mut)]
@@ -11,12 +13,15 @@ pub struct CreateTokenPlatformPool<'r> {
     #[account(
         init_if_needed,
         payer = signer,
-        seeds = [b"platform",mint.key().as_ref()],
+        seeds = [
+            TOKENS_PLATFORM_POOL_SEEDS_PREFIX,
+            mint.key().as_ref()
+        ],
         token::mint = mint,
         token::authority = platform_pool,
         bump,
     )]
-    platform_pool: Option<Box<Account<'r, TokenAccount>>>,
+    platform_pool: Account<'r, TokenAccount>,
 
     token_program: Program<'r, Token>,
 

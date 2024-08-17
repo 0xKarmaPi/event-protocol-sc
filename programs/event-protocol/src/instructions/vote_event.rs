@@ -1,13 +1,18 @@
-use anchor_lang::{prelude::*, system_program};
+use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
 use crate::{
+    constants::{
+        PREDICTION_EVENT_SEEDS_PREFIX, TICKET_SEEDS_PREFIX, TOKENS_LEFT_POOL_SEEDS_PREFIX,
+        TOKENS_RIGHT_POOL_SEEDS_PREFIX,
+    },
     error::Error,
-    state::{PredictionEvent, Selection, Ticket},
+    events::VoteEvtEvent,
+    state::{PredictionEvent, Side, Ticket},
 };
 
 #[derive(Accounts)]
-#[instruction(selection:  Selection)]
+#[instruction(selection:  Side)]
 pub struct VoteEvent<'r> {
     #[account(mut)]
     signer: Signer<'r>,
@@ -15,53 +20,71 @@ pub struct VoteEvent<'r> {
     #[account(
         mut,
         seeds = [
-            PredictionEvent::SEED_PREFIX,
-            prediction_event.id.key().as_ref(),
+            PREDICTION_EVENT_SEEDS_PREFIX,
+            event.id.key().as_ref(),
         ],
-        bump = prediction_event.bump,
+        bump,
     )]
-    prediction_event: Box<Account<'r, PredictionEvent>>,
+    event: Account<'r, PredictionEvent>,
 
     #[account(
         init_if_needed,
         space = 8 + Ticket::INIT_SPACE,
         payer = signer,
         seeds = [
-            Ticket::SEED_PREFIX,
+            TICKET_SEEDS_PREFIX,
             selection.as_seeds(),
-            prediction_event.id.key().as_ref(),
+            event.id.key().as_ref(),
             signer.key().as_ref(),
         ],
         bump,
     )]
     ticket: Account<'r, Ticket>,
 
+    #[account(
+        constraint = left_mint.key() == event.left_mint.ok_or(Error::NonLeftEvent)?.key()
+    )]
     left_mint: Option<Account<'r, Mint>>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = left_sender_ata.mint == event.left_mint.ok_or(Error::NonLeftEvent)?.key()
+    )]
     left_sender_ata: Option<Account<'r, TokenAccount>>,
 
     #[account(
         mut,
-        seeds = [b"left_pool", prediction_event.id.key().as_ref()],
+        seeds = [
+            TOKENS_LEFT_POOL_SEEDS_PREFIX,
+            event.id.key().as_ref()
+        ],
         token::mint = left_mint,
-        token::authority = prediction_event,
+        token::authority = event,
         bump,
     )]
     left_pool: Option<Account<'r, TokenAccount>>,
 
+    #[account(
+        constraint = right_mint.key() == event.right_mint.ok_or(Error::NonRightEvent)?.key()
+    )]
     right_mint: Option<Account<'r, Mint>>,
 
     #[account(
         mut,
-        seeds = [b"right_pool", prediction_event.id.key().as_ref()],
+        seeds = [
+            TOKENS_RIGHT_POOL_SEEDS_PREFIX,
+            event.id.key().as_ref()
+        ],
         token::mint = right_mint,
-        token::authority = prediction_event,
+        token::authority = event,
         bump,
     )]
     right_pool: Option<Account<'r, TokenAccount>>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = right_sender_ata.mint == event.right_mint.ok_or(Error::NonRightEvent)?.key()
+    )]
     right_sender_ata: Option<Account<'r, TokenAccount>>,
 
     system_program: Program<'r, System>,
@@ -69,29 +92,28 @@ pub struct VoteEvent<'r> {
     token_program: Program<'r, Token>,
 }
 
-pub fn handler(ctx: Context<VoteEvent>, selection: Selection, amount: u64) -> Result<()> {
+pub fn handler(ctx: Context<VoteEvent>, selection: Side, amount: u64) -> Result<()> {
     let ticket = &mut ctx.accounts.ticket;
     let signer = &ctx.accounts.signer;
-    let prediction_event = &ctx.accounts.prediction_event;
+    let event = &ctx.accounts.event;
 
-    let clock = Clock::get()?;
-
-    let current_timestamp = clock.unix_timestamp as u64;
-
-    if current_timestamp > prediction_event.end_date {
-        return err!(Error::FinishedEvent);
-    }
+    require!(event.is_started()?, Error::NotStartedEvent);
+    require!(!event.is_finished()?, Error::FinishedEvent);
 
     ticket.creator = signer.key();
+
+    msg!("amount before: {}", ticket.amount);
+
     ticket.amount += amount;
     ticket.selection = selection;
 
+    msg!("amount after: {}", ticket.amount);
     let creator = signer.key();
-    let event_id = prediction_event.id;
+    let event_id = event.id;
 
     match selection {
-        Selection::Left => handle_vote_left(ctx, amount)?,
-        Selection::Right => handle_vote_right(ctx, amount)?,
+        Side::Left => handle_vote_left(ctx, amount)?,
+        Side::Right => handle_vote_right(ctx, amount)?,
     };
 
     emit!(VoteEvtEvent {
@@ -105,107 +127,69 @@ pub fn handler(ctx: Context<VoteEvent>, selection: Selection, amount: u64) -> Re
 }
 
 fn handle_vote_left(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
-    let prediction_event = &mut ctx.accounts.prediction_event;
+    let event = &mut ctx.accounts.event;
     let signer = &ctx.accounts.signer;
     let left_mint = &ctx.accounts.left_mint;
     let left_pool = &ctx.accounts.left_pool;
     let left_sender_ata = &ctx.accounts.left_sender_ata;
 
-    if let Some(left_mint) = left_mint {
-        let event_left_mint = prediction_event.left_mint.ok_or(Error::NonLeftEvent)?;
-
-        if event_left_mint != left_mint.key() {
-            return err!(Error::InvalidMint);
-        }
-
+    if left_mint.is_some() {
         let left_pool = left_pool.as_ref().ok_or(Error::MissingLeftPool)?;
 
         let left_sender_ata = left_sender_ata.as_ref().ok_or(Error::MissingSenderAta)?;
 
-        let transfer_instruction = anchor_spl::token::Transfer {
-            from: left_sender_ata.to_account_info(),
-            to: left_pool.to_account_info(),
-            authority: signer.to_account_info(),
-        };
+        let token_program = &ctx.accounts.token_program;
 
-        let cpi_ctx = CpiContext::new(
-            ctx.accounts.token_program.to_account_info(),
-            transfer_instruction,
-        );
+        PredictionEvent::take_tokens_from_sender(
+            left_pool,
+            signer,
+            left_sender_ata,
+            token_program,
+            amount,
+        )?;
 
-        anchor_spl::token::transfer(cpi_ctx, amount)?;
-
-        prediction_event.left_pool += amount;
+        event.left_pool += amount;
     } else {
-        let cpi_context = CpiContext::new(
-            ctx.accounts.system_program.to_account_info(),
-            system_program::Transfer {
-                from: signer.to_account_info(),
-                to: prediction_event.to_account_info(),
-            },
-        );
+        let system_program = &ctx.accounts.system_program;
 
-        system_program::transfer(cpi_context, amount)?;
+        PredictionEvent::take_sols_from_sender(event, signer, system_program, amount)?;
 
-        prediction_event.left_pool += amount;
+        event.left_pool += amount;
     }
 
     Ok(())
 }
 
 fn handle_vote_right(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
-    let prediction_event = &mut ctx.accounts.prediction_event;
+    let event = &mut ctx.accounts.event;
     let signer = &ctx.accounts.signer;
     let right_mint = &ctx.accounts.right_mint;
     let right_pool = &ctx.accounts.right_pool;
     let right_sender_ata = &ctx.accounts.right_sender_ata;
 
-    if let Some(right_mint) = right_mint {
-        let event_right_mint = prediction_event.right_mint.ok_or(Error::NonRightEvent)?;
-
-        if event_right_mint != right_mint.key() {
-            return err!(Error::InvalidMint);
-        }
-
+    if right_mint.is_some() {
         let right_pool = right_pool.as_ref().ok_or(Error::NonRightEvent)?;
 
         let right_sender_ata = right_sender_ata.as_ref().ok_or(Error::MissingSenderAta)?;
 
-        let transfer_instruction = anchor_spl::token::Transfer {
-            from: right_sender_ata.to_account_info(),
-            to: right_pool.to_account_info(),
-            authority: signer.to_account_info(),
-        };
+        let token_program = &ctx.accounts.token_program;
 
-        let cpi_ctx = CpiContext::new(
-            ctx.accounts.token_program.to_account_info(),
-            transfer_instruction,
-        );
+        PredictionEvent::take_tokens_from_sender(
+            right_pool,
+            signer,
+            right_sender_ata,
+            token_program,
+            amount,
+        )?;
 
-        anchor_spl::token::transfer(cpi_ctx, amount)?;
-
-        prediction_event.right_pool += amount;
+        event.right_pool += amount;
     } else {
-        let cpi_context = CpiContext::new(
-            ctx.accounts.system_program.to_account_info(),
-            system_program::Transfer {
-                from: signer.to_account_info(),
-                to: prediction_event.to_account_info(),
-            },
-        );
+        let system_program = &ctx.accounts.system_program;
 
-        system_program::transfer(cpi_context, amount)?;
+        PredictionEvent::take_sols_from_sender(event, signer, system_program, amount)?;
 
-        prediction_event.right_pool += amount;
+        event.right_pool += amount;
     }
 
     Ok(())
-}
-
-#[event]
-struct VoteEvtEvent {
-    event_id: Pubkey,
-    creator: Pubkey,
-    selection: Selection,
-    amount: u64,
 }

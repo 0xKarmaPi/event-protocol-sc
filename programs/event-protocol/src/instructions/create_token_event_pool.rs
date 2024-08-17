@@ -1,17 +1,20 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
-use crate::{constants::PREDICTION_EVENT_SEED_PREFIX, state::PredictionEvent};
+use crate::{
+    constants::PREDICTION_EVENT_SEEDS_PREFIX,
+    state::{PredictionEvent, Side},
+};
 
 #[derive(Accounts)]
-#[instruction(_event_id:  Pubkey)]
+#[instruction(_event_id:  Pubkey, _side: Side)]
 pub struct CreateTokenEventPool<'r> {
     #[account(mut)]
     signer: Signer<'r>,
 
     #[account(
         seeds = [
-            PREDICTION_EVENT_SEED_PREFIX,
+            PREDICTION_EVENT_SEEDS_PREFIX,
             _event_id.key().as_ref(),
         ],
         bump,
@@ -21,12 +24,12 @@ pub struct CreateTokenEventPool<'r> {
     mint: Account<'r, Mint>,
 
     #[account(
-        init,
+        init_if_needed,
         payer = signer,
         seeds = [
-            
-            
-            b"left_pool", _event_id.key().as_ref()],
+            _side.as_pool_seeds_prefix(), 
+            _event_id.key().as_ref()
+        ],
         token::mint = mint,
         token::authority = event,
         bump,
@@ -38,6 +41,6 @@ pub struct CreateTokenEventPool<'r> {
     system_program: Program<'r, System>,
 }
 
-pub fn handler(_ctx: Context<CreateTokenEventPool>, _event_id: Pubkey) -> Result<()> {
+pub fn handler(_ctx: Context<CreateTokenEventPool>, _event_id: Pubkey, _side: Side) -> Result<()> {
     Ok(())
 }

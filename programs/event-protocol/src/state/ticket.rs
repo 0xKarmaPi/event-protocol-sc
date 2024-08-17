@@ -1,7 +1,9 @@
 use anchor_lang::prelude::*;
 
+use crate::constants::{TOKENS_LEFT_POOL_SEEDS_PREFIX, TOKENS_RIGHT_POOL_SEEDS_PREFIX};
+
 #[derive(AnchorSerialize, AnchorDeserialize, Copy, Clone, PartialEq, Eq, InitSpace, Debug)]
-pub enum Selection {
+pub enum Side {
     Left,
     Right,
 }
@@ -11,18 +13,21 @@ pub enum Selection {
 pub struct Ticket {
     pub creator: Pubkey,
     pub amount: u64,
-    pub selection: Selection,
+    pub selection: Side,
 }
 
-impl Ticket {
-    pub const SEED_PREFIX: &'static [u8; 6] = b"ticket";
-}
-
-impl Selection {
+impl Side {
     pub fn as_seeds(&self) -> &[u8] {
         match self {
             Self::Left => b"left",
             Self::Right => b"right",
+        }
+    }
+
+    pub fn as_pool_seeds_prefix(&self) -> &[u8] {
+        match self {
+            Self::Left => TOKENS_LEFT_POOL_SEEDS_PREFIX,
+            Self::Right => TOKENS_RIGHT_POOL_SEEDS_PREFIX,
         }
     }
 }

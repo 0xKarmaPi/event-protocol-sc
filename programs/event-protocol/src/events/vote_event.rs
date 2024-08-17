@@ -1,11 +1,11 @@
 use anchor_lang::prelude::*;
 
-use crate::state::Selection;
+use crate::state::Side;
 
 #[event]
 pub struct VoteEvtEvent {
     pub event_id: Pubkey,
     pub creator: Pubkey,
-    pub selection: Selection,
+    pub selection: Side,
     pub amount: u64,
 }

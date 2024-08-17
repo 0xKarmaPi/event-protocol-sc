@@ -10,6 +10,7 @@ pub struct DeployEvtEvent {
     pub creator: Pubkey,
     pub end_date: u64,
     pub start_date: u64,
+    pub burning: bool,
     pub left_mint: Option<Pubkey>,
     pub right_mint: Option<Pubkey>,
 }

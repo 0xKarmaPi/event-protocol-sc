@@ -5,10 +5,13 @@ use anchor_spl::{
 };
 
 use crate::{
-    constants::PREDICTION_EVENT_SEED_PREFIX,
+    constants::{
+        PREDICTION_EVENT_SEEDS_PREFIX, TICKET_SEEDS_PREFIX, TOKENS_LEFT_POOL_SEEDS_PREFIX,
+        TOKENS_RIGHT_POOL_SEEDS_PREFIX,
+    },
     error::Error,
     state::{PredictionEvent, Ticket},
-    Selection,
+    Side,
 };
 
 #[derive(Accounts)]
@@ -18,67 +21,71 @@ pub struct ClaimReward<'r> {
 
     #[account(
         seeds = [
-            PREDICTION_EVENT_SEED_PREFIX,
+            PREDICTION_EVENT_SEEDS_PREFIX,
             event.id.key().as_ref(),
         ],
-        bump = event.bump,
+        bump,
     )]
-    event: Box<Account<'r, PredictionEvent>>,
+    event: Account<'r, PredictionEvent>,
 
     #[account(
         seeds = [
-            Ticket::SEED_PREFIX,
+            TICKET_SEEDS_PREFIX,
             event.result.ok_or(Error::NotFinishedEvent)?.as_seeds(),
             event.id.key().as_ref(),
             signer.key().as_ref(),
         ],
         bump,
     )]
-    ticket: Box<Account<'r, Ticket>>,
+    ticket: Account<'r, Ticket>,
 
     #[account(
         constraint = left_mint.key() == event.left_mint.ok_or(Error::NonLeftEvent)?.key()
     )]
-    left_mint: Option<Box<Account<'r, Mint>>>,
+    left_mint: Option<Account<'r, Mint>>,
 
     #[account(
         mut,
-        seeds = [b"left_pool", event.id.key().as_ref()],
+        seeds = [
+            TOKENS_LEFT_POOL_SEEDS_PREFIX,
+            event.id.key().as_ref()
+        ],
         token::mint = left_mint,
         token::authority = event,
         bump,
     )]
-    left_pool: Option<Box<Account<'r, TokenAccount>>>,
+    left_pool: Option<Account<'r, TokenAccount>>,
 
     #[account(
-        init_if_needed,
-        payer = signer,
+        mut,
         associated_token::mint = left_mint,
         associated_token::authority = signer,
     )]
-    signer_left_ata: Option<Box<Account<'r, TokenAccount>>>,
+    signer_left_ata: Option<Account<'r, TokenAccount>>,
 
     #[account(
         constraint = right_mint.key() == event.right_mint.ok_or(Error::NonRightEvent)?.key()
     )]
-    right_mint: Option<Box<Account<'r, Mint>>>,
+    right_mint: Option<Account<'r, Mint>>,
 
     #[account(
         mut,
-        seeds = [b"right_pool", event.id.key().as_ref()],
+        seeds = [
+            TOKENS_RIGHT_POOL_SEEDS_PREFIX,
+            event.id.key().as_ref()
+        ],
         token::mint = right_mint,
         token::authority = event,
         bump,
     )]
-    right_pool: Option<Box<Account<'r, TokenAccount>>>,
+    right_pool: Option<Account<'r, TokenAccount>>,
 
     #[account(
-        init_if_needed,
-        payer = signer,
+        mut,
         associated_token::mint = right_mint,
         associated_token::authority = signer,
     )]
-    signer_right_ata: Option<Box<Account<'r, TokenAccount>>>,
+    signer_right_ata: Option<Account<'r, TokenAccount>>,
 
     token_program: Program<'r, Token>,
 
@@ -92,8 +99,8 @@ pub fn handler(ctx: Context<ClaimReward>) -> Result<()> {
     let result = event.result.ok_or(Error::NotFinishedEvent)?;
 
     match result {
-        Selection::Left => handle_left_result(ctx)?,
-        Selection::Right => handle_right_result(ctx)?,
+        Side::Left => handle_left_result(ctx)?,
+        Side::Right => handle_right_result(ctx)?,
     };
 
     Ok(())
@@ -124,7 +131,7 @@ fn handle_left_result(ctx: Context<ClaimReward>) -> Result<()> {
             .as_ref()
             .ok_or(Error::MissingSenderAta)?;
 
-        PredictionEvent::transfer_tokens(
+        PredictionEvent::transfer_tokens_from_pool(
             event,
             right_pool,
             signer_ata.to_account_info(),
@@ -160,7 +167,7 @@ fn handle_right_result(ctx: Context<ClaimReward>) -> Result<()> {
             .as_ref()
             .ok_or(Error::MissingSenderAta)?;
 
-        PredictionEvent::transfer_tokens(
+        PredictionEvent::transfer_tokens_from_pool(
             event,
             left_pool,
             signer_ata.to_account_info(),
