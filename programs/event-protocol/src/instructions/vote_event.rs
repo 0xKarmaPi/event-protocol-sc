@@ -102,12 +102,9 @@ pub fn handler(ctx: Context<VoteEvent>, selection: Side, amount: u64) -> Result<
 
     ticket.creator = signer.key();
 
-    msg!("amount before: {}", ticket.amount);
-
     ticket.amount += amount;
     ticket.selection = selection;
 
-    msg!("amount after: {}", ticket.amount);
     let creator = signer.key();
     let event_id = event.id;
 

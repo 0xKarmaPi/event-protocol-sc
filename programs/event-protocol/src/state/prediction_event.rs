@@ -124,9 +124,6 @@ impl PredictionEvent {
         let clock = Clock::get()?;
         let current_timestamp = clock.unix_timestamp as u64;
 
-        msg!("current_timestamp {}", current_timestamp);
-        msg!("self.end_date {}", self.end_date);
-
         Ok(self.end_date <= current_timestamp)
     }
 
