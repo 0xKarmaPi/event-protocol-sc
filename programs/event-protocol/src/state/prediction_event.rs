@@ -95,6 +95,31 @@ impl PredictionEvent {
         anchor_spl::token::transfer(cpi_ctx, amount)
     }
 
+    pub fn close_pool<'r>(
+        event: &Account<'r, PredictionEvent>,
+        pool: &Account<'r, TokenAccount>,
+        destination: &Signer<'r>,
+        token_program: &Program<'r, Token>,
+    ) -> Result<()> {
+        let cpi_accounts = anchor_spl::token::CloseAccount {
+            account: pool.to_account_info(),
+            destination: destination.to_account_info(),
+            authority: event.to_account_info(),
+        };
+
+        let cpi_program = token_program.to_account_info();
+
+        let bump = event.bump;
+
+        let seeds = &[PREDICTION_EVENT_SEEDS_PREFIX, event.id.as_ref(), &[bump]];
+
+        let signer_seeds = &[&seeds[..]];
+
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
+
+        anchor_spl::token::close_account(cpi_ctx)
+    }
+
     pub fn is_finished(&self) -> Result<bool> {
         let clock = Clock::get()?;
         let current_timestamp = clock.unix_timestamp as u64;

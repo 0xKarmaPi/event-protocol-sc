@@ -10,6 +10,7 @@ use crate::{
         TOKENS_RIGHT_POOL_SEEDS_PREFIX,
     },
     error::Error,
+    events::ClaimRewardsEvent,
     state::{PredictionEvent, Ticket},
     Side,
 };
@@ -178,6 +179,12 @@ fn handle_right_result(ctx: Context<ClaimReward>) -> Result<()> {
         event.sub_lamports(amount)?;
         signer.add_lamports(amount)?;
     }
+
+    emit!(ClaimRewardsEvent {
+        event_id: event.id,
+        signer: signer.key(),
+        amount
+    });
 
     Ok(())
 }

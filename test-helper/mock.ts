@@ -10,11 +10,11 @@ export async function mock(provider: anchor.AnchorProvider) {
   const [goniSignature, asuraSignature] = await Promise.all([
     provider.connection.requestAirdrop(
       goni.publicKey,
-      20 * web3.LAMPORTS_PER_SOL
+      100 * web3.LAMPORTS_PER_SOL
     ),
     provider.connection.requestAirdrop(
       asura.publicKey,
-      20 * web3.LAMPORTS_PER_SOL
+      100 * web3.LAMPORTS_PER_SOL
     )
   ])
 
@@ -63,7 +63,7 @@ export async function mock(provider: anchor.AnchorProvider) {
       leftMint,
       goniLefAta.address,
       goni.publicKey,
-      web3.LAMPORTS_PER_SOL * 20
+      web3.LAMPORTS_PER_SOL * 2000
     ),
     spl.mintTo(
       provider.connection,
@@ -71,7 +71,7 @@ export async function mock(provider: anchor.AnchorProvider) {
       rightMint,
       goniRightAta.address,
       goni.publicKey,
-      web3.LAMPORTS_PER_SOL * 20
+      web3.LAMPORTS_PER_SOL * 2000
     ),
     spl.mintTo(
       provider.connection,
@@ -79,7 +79,7 @@ export async function mock(provider: anchor.AnchorProvider) {
       leftMint,
       asuraLefAta.address,
       goni.publicKey,
-      web3.LAMPORTS_PER_SOL * 20
+      web3.LAMPORTS_PER_SOL * 2000
     ),
     spl.mintTo(
       provider.connection,
@@ -87,7 +87,7 @@ export async function mock(provider: anchor.AnchorProvider) {
       rightMint,
       asuraRightAta.address,
       goni.publicKey,
-      web3.LAMPORTS_PER_SOL * 20
+      web3.LAMPORTS_PER_SOL * 2000
     )
   ])
 

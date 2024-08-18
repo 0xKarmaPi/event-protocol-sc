@@ -1,4 +1,5 @@
 pub mod claim_rewards;
+pub mod close_event;
 pub mod create_token_event_pool;
 pub mod create_token_platform_pool;
 pub mod deploy_event;
@@ -7,6 +8,7 @@ pub mod initialize;
 pub mod vote_event;
 
 pub use claim_rewards::*;
+pub use close_event::*;
 pub use create_token_event_pool::*;
 pub use create_token_platform_pool::*;
 pub use deploy_event::*;

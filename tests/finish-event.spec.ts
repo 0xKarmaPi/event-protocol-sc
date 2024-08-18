@@ -1,20 +1,19 @@
 import * as anchor from "@coral-xyz/anchor"
 import { Program, web3 } from "@coral-xyz/anchor"
 import * as spl from "@solana/spl-token"
+import { expect } from "chai"
 import { EventProtocol } from "../target/types/event_protocol"
-import { createPredictionEvent } from "../test-helper/create-prediction-event"
-import { makeAVote } from "../test-helper/make-a-vote"
-import { sleep } from "../test-helper/sleep"
+import { addCreateAtaInsIfNotExist } from "../test-helper/add-create-ata-ins-if-not-exist"
 import {
   MASTER_SEEDS,
   SIDE,
   TOKENS_PLATFORM_POOL_SEEDS_PREFIX
 } from "../test-helper/const"
-import { expect } from "chai"
-import { BN } from "bn.js"
+import { createPredictionEvent } from "../test-helper/create-prediction-event"
+import { makeAVote } from "../test-helper/make-a-vote"
 import { mock } from "../test-helper/mock"
+import { sleep } from "../test-helper/sleep"
 import { bnLamports } from "../test-helper/transform"
-import { addCreateAtaInsIfNotExist } from "../test-helper/add-create-ata-ins-if-not-exist"
 
 describe("finish_event instruction", () => {
   const provider = anchor.AnchorProvider.env()
