@@ -75,7 +75,7 @@ export async function createPredictionEvent<K extends Kind>(
 
   if (isLeftSome(kind)) {
     const creatLeftTokenEventPoolIns = await program.methods
-      .createTokenEventPool(id, SIDE.Left)
+      .createTokenEventPool(SIDE.Left)
       .accountsStrict({
         event,
         mint: leftMint!,
@@ -91,7 +91,7 @@ export async function createPredictionEvent<K extends Kind>(
 
   if (isRightSome(kind)) {
     const creatRightTokenEventPoolIns = await program.methods
-      .createTokenEventPool(id, SIDE.Right)
+      .createTokenEventPool(SIDE.Right)
       .accountsStrict({
         event,
         mint: rightMint!,

@@ -11,8 +11,11 @@ pub enum Error {
     #[msg("This event does not have the right mint and right pool")]
     NonRightEvent,
 
-    #[msg("Missing left pool")]
+    #[msg("Missing left pool account")]
     MissingLeftPool,
+
+    #[msg("Missing right pool account")]
+    MissingRightPool,
 
     #[msg("Missing sender's ata")]
     MissingSenderAta,

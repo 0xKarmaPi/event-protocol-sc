@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[derive(Accounts)]
-#[instruction(_event_id:  Pubkey, _side: Side)]
+#[instruction(_side: Side)]
 pub struct CreateTokenEventPool<'r> {
     #[account(mut)]
     signer: Signer<'r>,
@@ -15,7 +15,7 @@ pub struct CreateTokenEventPool<'r> {
     #[account(
         seeds = [
             PREDICTION_EVENT_SEEDS_PREFIX,
-            _event_id.key().as_ref(),
+            event.id.key().as_ref(),
         ],
         bump,
     )]
@@ -28,7 +28,7 @@ pub struct CreateTokenEventPool<'r> {
         payer = signer,
         seeds = [
             _side.as_pool_seeds_prefix(), 
-            _event_id.key().as_ref()
+            event.id.key().as_ref()
         ],
         token::mint = mint,
         token::authority = event,
@@ -41,6 +41,6 @@ pub struct CreateTokenEventPool<'r> {
     system_program: Program<'r, System>,
 }
 
-pub fn handler(_ctx: Context<CreateTokenEventPool>, _event_id: Pubkey, _side: Side) -> Result<()> {
+pub fn handler(_ctx: Context<CreateTokenEventPool>, _side: Side) -> Result<()> {
     Ok(())
 }

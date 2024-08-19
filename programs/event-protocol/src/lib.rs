@@ -30,19 +30,12 @@ pub mod event_protocol {
         deploy_event::handler(ctx, id, title, description, start_date, end_date, burning)
     }
 
-    pub fn create_token_event_pool(
-        _ctx: Context<CreateTokenEventPool>,
-        _event_id: Pubkey,
-        _side: Side,
-    ) -> Result<()> {
-        create_token_event_pool::handler(_ctx, _event_id, _side)
+    pub fn create_token_event_pool(_ctx: Context<CreateTokenEventPool>, _side: Side) -> Result<()> {
+        create_token_event_pool::handler(_ctx, _side)
     }
 
-    pub fn create_token_platform_pool(
-        _ctx: Context<CreateTokenPlatformPool>,
-        _event_id: Pubkey,
-    ) -> Result<()> {
-        create_token_platform_pool::handler(_ctx, _event_id)
+    pub fn create_token_platform_pool(_ctx: Context<CreateTokenPlatformPool>) -> Result<()> {
+        create_token_platform_pool::handler(_ctx)
     }
 
     pub fn vote_event(ctx: Context<VoteEvent>, selection: Side, amount: u64) -> Result<()> {

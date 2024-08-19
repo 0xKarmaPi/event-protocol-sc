@@ -25,7 +25,7 @@ export async function closePredictionEvent(
   )
 
   await program.methods
-    .closeEvent(eventAcc.id)
+    .closeEvent()
     .accountsStrict({
       event,
       leftMint: eventAcc.leftMint,

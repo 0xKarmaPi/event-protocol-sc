@@ -1,7 +1,5 @@
 import * as anchor from "@coral-xyz/anchor"
-import { Program, web3 } from "@coral-xyz/anchor"
-import * as spl from "@solana/spl-token"
-import { expect } from "chai"
+import { Program } from "@coral-xyz/anchor"
 import { EventProtocol } from "../target/types/event_protocol"
 import { addCreateAtaInsIfNotExist } from "../test-helper/add-create-ata-ins-if-not-exist"
 import {
@@ -13,51 +11,64 @@ import { createPredictionEvent } from "../test-helper/create-prediction-event"
 import { makeAVote } from "../test-helper/make-a-vote"
 import { mock } from "../test-helper/mock"
 import { sleep } from "../test-helper/sleep"
-import { bnLamports } from "../test-helper/transform"
+import { web3 } from "@coral-xyz/anchor"
+import * as spl from "@solana/spl-token"
+import { expect } from "chai"
 
-describe("finish_event instruction", () => {
+describe("claim_rewards instruction", () => {
   const provider = anchor.AnchorProvider.env()
   anchor.setProvider(provider)
 
   const program = anchor.workspace.EventProtocol as Program<EventProtocol>
   const signer = provider.wallet as anchor.Wallet
 
-  const [master] = web3.PublicKey.findProgramAddressSync(
-    [MASTER_SEEDS],
-    program.programId
-  )
+  let leftMint: anchor.web3.PublicKey
+  let rightMint: anchor.web3.PublicKey
 
   let goni: anchor.web3.Keypair
   let asura: anchor.web3.Keypair
-  let leftMint: anchor.web3.PublicKey
-  let rightMint: anchor.web3.PublicKey
+
+  let goniRightAta: anchor.web3.PublicKey
 
   before(async () => {
     const init = await mock(provider)
 
-    goni = init.goni
-    asura = init.asura
     leftMint = init.leftMint
     rightMint = init.rightMint
+
+    goni = init.goni
+    asura = init.asura
+
+    goniRightAta = init.goniRightAta.address
   })
 
-  it("finish a SS event", async () => {
-    const { rightPool, event, id } = await createPredictionEvent(
-      signer,
-      program,
-      {
-        kind: "some::some",
-        leftMint,
-        rightMint
-      }
+  it("claim on ss event", async () => {
+    const { event, rightPool } = await createPredictionEvent(signer, program, {
+      kind: "some::some",
+      leftMint,
+      rightMint
+    })
+
+    const [goniLeftTicket] = await Promise.all([
+      makeAVote(goni, program, event, "left", 3),
+      makeAVote(asura, program, event, "right", 6)
+    ])
+
+    await makeAVote(asura, program, event, "left", 3)
+
+    await sleep(3000)
+
+    const [master] = web3.PublicKey.findProgramAddressSync(
+      [MASTER_SEEDS],
+      program.programId
     )
 
-    const [rightPlatformPool] = web3.PublicKey.findProgramAddressSync(
+    const [rightPlatformPool] = anchor.web3.PublicKey.findProgramAddressSync(
       [TOKENS_PLATFORM_POOL_SEEDS_PREFIX, rightMint.toBuffer()],
       program.programId
     )
 
-    const transaction = new web3.Transaction()
+    const transaction = new anchor.web3.Transaction()
 
     const createRightPlatformPoolIns = await program.methods
       .createTokenPlatformPool()
@@ -79,13 +90,6 @@ describe("finish_event instruction", () => {
       rightMint,
       signer.publicKey
     )
-
-    await Promise.all([
-      makeAVote(goni, program, event, "left", 0.5),
-      makeAVote(asura, program, event, "right", 0.6)
-    ])
-
-    await sleep(3000)
 
     const finishEventIns = await program.methods
       .finishEvent(SIDE.Left)
@@ -116,24 +120,41 @@ describe("finish_event instruction", () => {
       signer.payer
     ])
 
-    const platformAta = await spl.getAccount(
+    const { amount: before } = await spl.getAccount(
       provider.connection,
-      rightPlatformPool
+      goniRightAta
     )
 
-    const creatorAta = await spl.getAccount(
+    await program.methods
+      .claimRewards()
+      .accountsStrict({
+        event,
+
+        leftMint: null,
+        leftPool: null,
+        signerLeftAta: null,
+
+        rightMint,
+        rightPool,
+        signerRightAta: goniRightAta,
+
+        ticket: goniLeftTicket,
+
+        signer: goni.publicKey,
+        systemProgram: web3.SystemProgram.programId,
+        tokenProgram: spl.TOKEN_PROGRAM_ID,
+        associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID
+      })
+      .signers([goni])
+      .rpc()
+
+    const rewards = (3 + 3) * web3.LAMPORTS_PER_SOL * (3 / 6) * 0.95
+
+    const { amount: after } = await spl.getAccount(
       provider.connection,
-      rightCreatorFee
+      goniRightAta
     )
 
-    const eventAcc = await program.account.predictionEvent.fetch(event)
-
-    expect(eventAcc.leftPool.eq(bnLamports(0.5))).be.true
-    expect(eventAcc.rightPool.eq(bnLamports(0.6 * 0.95))).be.true
-    expect(eventAcc.result?.left).be.not.undefined
-    expect(eventAcc.result?.right).be.undefined
-
-    expect(creatorAta.amount).eq(BigInt(0.6 * web3.LAMPORTS_PER_SOL * 0.025))
-    expect(platformAta.amount).eq(BigInt(0.6 * web3.LAMPORTS_PER_SOL * 0.025))
+    expect(before + BigInt(rewards)).eq(after)
   })
 })

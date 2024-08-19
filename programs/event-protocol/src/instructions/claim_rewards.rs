@@ -26,7 +26,7 @@ pub struct ClaimReward<'r> {
             event.id.key().as_ref(),
         ],
         bump,
-        constraint = event.burning @ Error::BurningEvent
+        constraint = !event.burning @ Error::BurningEvent
     )]
     event: Account<'r, PredictionEvent>,
 
@@ -118,14 +118,14 @@ fn handle_left_result(ctx: Context<ClaimReward>) -> Result<()> {
     let losing_pool = event.right_pool;
     let winning_pool = event.left_pool;
 
-    let amount = bet_amount / winning_pool * losing_pool;
+    let amount = bet_amount * 100_000 / winning_pool * losing_pool / 100_000;
 
     if event.right_mint.is_some() {
         let right_pool = ctx
             .accounts
             .right_pool
             .as_ref()
-            .ok_or(Error::NonRightEvent)?;
+            .ok_or(Error::MissingRightPool)?;
 
         let signer_ata = ctx
             .accounts
@@ -163,10 +163,14 @@ fn handle_right_result(ctx: Context<ClaimReward>) -> Result<()> {
     let losing_pool = event.left_pool;
     let winning_pool = event.right_pool;
 
-    let amount = bet_amount / winning_pool * losing_pool;
+    let amount = bet_amount * 100_000 / winning_pool * losing_pool / 100_000;
 
     if event.left_mint.is_some() {
-        let left_pool = ctx.accounts.left_pool.as_ref().ok_or(Error::NonLeftEvent)?;
+        let left_pool = ctx
+            .accounts
+            .left_pool
+            .as_ref()
+            .ok_or(Error::MissingLeftPool)?;
 
         let signer_ata = ctx
             .accounts

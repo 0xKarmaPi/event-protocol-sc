@@ -28,6 +28,6 @@ pub struct CreateTokenPlatformPool<'r> {
     system_program: Program<'r, System>,
 }
 
-pub fn handler(_ctx: Context<CreateTokenPlatformPool>, _event_id: Pubkey) -> Result<()> {
+pub fn handler(_ctx: Context<CreateTokenPlatformPool>) -> Result<()> {
     Ok(())
 }
