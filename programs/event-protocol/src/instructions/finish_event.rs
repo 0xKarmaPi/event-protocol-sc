@@ -8,7 +8,7 @@ use crate::constants::{
 };
 use crate::error::Error;
 use crate::events::FinishEvtEvent;
-use crate::state::{Master, PredictionEvent, Side};
+use crate::state::{Master, PredictionEvent, PredictionEventAccount, Side};
 
 #[derive(Accounts)]
 pub struct FinishEvent<'r> {
@@ -161,20 +161,18 @@ fn handle_set_left(ctx: Context<FinishEvent>) -> Result<()> {
 
         let pool = right_pool.as_ref().ok_or(Error::NonRightEvent)?;
 
-        PredictionEvent::transfer_tokens_from_pool(
-            event,
+        event.transfer_tokens_from_pool(
             pool,
             creator_fee_ata.to_account_info(),
-            amount,
             token_program,
+            amount,
         )?;
 
-        PredictionEvent::transfer_tokens_from_pool(
-            event,
+        event.transfer_tokens_from_pool(
             pool,
             platform_fee_ata.to_account_info(),
-            amount,
             token_program,
+            amount,
         )?;
     } else {
         // transfer 2.5 % sol to creator and platform from sol right pool
@@ -216,20 +214,18 @@ fn handle_set_right(ctx: Context<FinishEvent>) -> Result<()> {
 
         let pool = left_pool.as_ref().ok_or(Error::NonLeftEvent)?;
 
-        PredictionEvent::transfer_tokens_from_pool(
-            event,
+        event.transfer_tokens_from_pool(
             pool,
             creator_fee_ata.to_account_info(),
-            amount,
             token_program,
+            amount,
         )?;
 
-        PredictionEvent::transfer_tokens_from_pool(
-            event,
+        event.transfer_tokens_from_pool(
             pool,
             platform_fee_ata.to_account_info(),
-            amount,
             token_program,
+            amount,
         )?;
     } else {
         // transfer 2.5 % sol to creator and platform from sol left pool

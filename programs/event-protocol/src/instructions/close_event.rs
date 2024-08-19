@@ -11,7 +11,6 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
 #[derive(Accounts)]
-#[instruction(id:  Pubkey)]
 pub struct CloseEvent<'r> {
     #[account(
         mut,
@@ -23,7 +22,7 @@ pub struct CloseEvent<'r> {
         mut,
         seeds = [
             PREDICTION_EVENT_SEEDS_PREFIX,
-            id.key().as_ref(),
+            event.id.key().as_ref(),
         ],
         bump,
         close = signer,
@@ -40,7 +39,7 @@ pub struct CloseEvent<'r> {
         mut,
         seeds = [
             TOKENS_LEFT_POOL_SEEDS_PREFIX,
-            id.key().as_ref()
+            event.id.key().as_ref()
         ],
         token::mint = left_mint,
         token::authority = event,
@@ -57,7 +56,7 @@ pub struct CloseEvent<'r> {
         mut,
         seeds = [
             TOKENS_RIGHT_POOL_SEEDS_PREFIX,
-            id.key().as_ref()
+            event.id.key().as_ref()
         ],
         token::mint = right_mint,
         token::authority = event,
@@ -68,20 +67,20 @@ pub struct CloseEvent<'r> {
     token_program: Program<'r, Token>,
 }
 
-pub fn handler(ctx: Context<CloseEvent>, id: Pubkey) -> Result<()> {
+pub fn handler(ctx: Context<CloseEvent>) -> Result<()> {
     let signer = &ctx.accounts.signer;
     let token_program = &ctx.accounts.token_program;
     let event = &ctx.accounts.event;
 
     if let Some(left_pool) = &ctx.accounts.left_pool {
-        PredictionEvent::close_pool(event, left_pool, signer, token_program)?;
+        event.close_pool(left_pool, signer, token_program)?;
     }
 
     if let Some(right_pool) = &ctx.accounts.right_pool {
-        PredictionEvent::close_pool(event, right_pool, signer, token_program)?;
+        event.close_pool(right_pool, signer, token_program)?;
     }
 
-    emit!(CloseEvtEvent { event_id: id });
+    emit!(CloseEvtEvent { event_id: event.id });
 
     Ok(())
 }

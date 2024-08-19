@@ -25,7 +25,7 @@ describe("close_event instruction", () => {
   })
 
   it("close a ss event", async () => {
-    const { event, leftPool, rightPool, id } = await createPredictionEvent(
+    const { event, leftPool, rightPool } = await createPredictionEvent(
       signer,
       program,
       {
@@ -46,8 +46,6 @@ describe("close_event instruction", () => {
     const rightPoolAcc = await program.provider.connection.getAccountInfo(
       rightPool
     )
-
-    console.log({ eventAcc, leftPoolAcc, rightPoolAcc })
 
     expect(eventAcc).be.null
     expect(leftPoolAcc).be.null

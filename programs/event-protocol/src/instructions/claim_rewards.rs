@@ -11,7 +11,7 @@ use crate::{
     },
     error::Error,
     events::ClaimRewardsEvent,
-    state::{PredictionEvent, Ticket},
+    state::{PredictionEvent, PredictionEventAccount, Ticket},
     Side,
 };
 
@@ -26,6 +26,7 @@ pub struct ClaimReward<'r> {
             event.id.key().as_ref(),
         ],
         bump,
+        constraint = event.burning @ Error::BurningEvent
     )]
     event: Account<'r, PredictionEvent>,
 
@@ -132,17 +133,22 @@ fn handle_left_result(ctx: Context<ClaimReward>) -> Result<()> {
             .as_ref()
             .ok_or(Error::MissingSenderAta)?;
 
-        PredictionEvent::transfer_tokens_from_pool(
-            event,
+        event.transfer_tokens_from_pool(
             right_pool,
             signer_ata.to_account_info(),
-            amount,
             token_program,
+            amount,
         )?;
     } else {
         event.sub_lamports(amount)?;
         signer.add_lamports(amount)?;
     }
+
+    emit!(ClaimRewardsEvent {
+        event_id: event.id,
+        signer: signer.key(),
+        amount
+    });
 
     Ok(())
 }
@@ -168,12 +174,11 @@ fn handle_right_result(ctx: Context<ClaimReward>) -> Result<()> {
             .as_ref()
             .ok_or(Error::MissingSenderAta)?;
 
-        PredictionEvent::transfer_tokens_from_pool(
-            event,
+        event.transfer_tokens_from_pool(
             left_pool,
             signer_ata.to_account_info(),
-            amount,
             token_program,
+            amount,
         )?;
     } else {
         event.sub_lamports(amount)?;

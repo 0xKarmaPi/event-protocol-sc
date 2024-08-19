@@ -8,7 +8,7 @@ use crate::{
     },
     error::Error,
     events::VoteEvtEvent,
-    state::{PredictionEvent, Side, Ticket},
+    state::{PredictionEvent, PredictionEventAccount, Side, Ticket, TokensPool},
 };
 
 #[derive(Accounts)]
@@ -137,19 +137,13 @@ fn handle_vote_left(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
 
         let token_program = &ctx.accounts.token_program;
 
-        PredictionEvent::take_tokens_from_sender(
-            left_pool,
-            signer,
-            left_sender_ata,
-            token_program,
-            amount,
-        )?;
+        left_pool.take_tokens_from_sender(signer, left_sender_ata, token_program, amount)?;
 
         event.left_pool += amount;
     } else {
         let system_program = &ctx.accounts.system_program;
 
-        PredictionEvent::take_sols_from_sender(event, signer, system_program, amount)?;
+        event.take_sols_from_sender(signer, system_program, amount)?;
 
         event.left_pool += amount;
     }
@@ -171,19 +165,13 @@ fn handle_vote_right(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
 
         let token_program = &ctx.accounts.token_program;
 
-        PredictionEvent::take_tokens_from_sender(
-            right_pool,
-            signer,
-            right_sender_ata,
-            token_program,
-            amount,
-        )?;
+        right_pool.take_tokens_from_sender(signer, right_sender_ata, token_program, amount)?;
 
         event.right_pool += amount;
     } else {
         let system_program = &ctx.accounts.system_program;
 
-        PredictionEvent::take_sols_from_sender(event, signer, system_program, amount)?;
+        event.take_sols_from_sender(signer, system_program, amount)?;
 
         event.right_pool += amount;
     }

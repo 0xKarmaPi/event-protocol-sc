@@ -57,7 +57,7 @@ pub mod event_protocol {
         claim_rewards::handler(ctx)
     }
 
-    pub fn close_event(ctx: Context<CloseEvent>, id: Pubkey) -> Result<()> {
-        close_event::handler(ctx, id)
+    pub fn close_event(ctx: Context<CloseEvent>) -> Result<()> {
+        close_event::handler(ctx)
     }
 }

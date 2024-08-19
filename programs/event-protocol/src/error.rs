@@ -40,4 +40,7 @@ pub enum Error {
 
     #[msg("Missing left mint")]
     MissingRightMint,
+
+    #[msg("The event is not allow to withdraw, the losing side tokens had burned")]
+    BurningEvent,
 }
