@@ -1,6 +1,9 @@
-use anchor_lang::prelude::*;
+use anchor_lang::{prelude::*, system_program};
+use anchor_spl::token::{self, Token, TokenAccount};
 
-use super::Selection;
+use crate::constants::PREDICTION_EVENT_SEEDS_PREFIX;
+
+use super::Side;
 
 #[account]
 #[derive(InitSpace, Debug)]
@@ -11,29 +14,123 @@ pub struct PredictionEvent {
 
     pub bump: u8,
 
+    pub start_date: u64,
+
     pub end_date: u64,
 
-    #[max_len(50)]
-    pub title: String,
+    pub left_pool: u64,
 
-    #[max_len(144)]
-    pub description: String,
+    pub right_pool: u64,
 
     pub left_mint: Option<Pubkey>,
 
     pub right_mint: Option<Pubkey>,
 
-    pub sol_left_pool: Option<u64>,
+    pub result: Option<Side>,
 
-    pub sol_right_pool: Option<u64>,
-
-    pub left_pool: Option<u64>,
-
-    pub right_pool: Option<u64>,
-
-    pub result: Option<Selection>,
+    pub burning: bool,
 }
 
 impl PredictionEvent {
-    pub const SEED_PREFIX: &'static [u8; 16] = b"prediction_event";
+    pub fn transfer_tokens_from_pool<'r>(
+        event: &Account<'r, Self>,
+        pool: &Account<'r, TokenAccount>,
+        to: AccountInfo<'r>,
+        amount: u64,
+        token_program: &Program<'r, Token>,
+    ) -> Result<()> {
+        let transfer_instruction = token::Transfer {
+            from: pool.to_account_info(),
+            to,
+            authority: event.to_account_info(),
+        };
+
+        let bump = event.bump;
+
+        let seeds = &[PREDICTION_EVENT_SEEDS_PREFIX, event.id.as_ref(), &[bump]];
+
+        let signer_seeds = &[&seeds[..]];
+
+        let cpi_ctx = CpiContext::new_with_signer(
+            token_program.to_account_info(),
+            transfer_instruction,
+            signer_seeds,
+        );
+
+        anchor_spl::token::transfer(cpi_ctx, amount)
+    }
+
+    pub fn take_sols_from_sender<'r>(
+        event: &Account<'r, Self>,
+        signer: &Signer<'r>,
+        system_program: &Program<'r, System>,
+        amount: u64,
+    ) -> Result<()> {
+        let cpi_context = CpiContext::new(
+            system_program.to_account_info(),
+            system_program::Transfer {
+                from: signer.to_account_info(),
+                to: event.to_account_info(),
+            },
+        );
+
+        system_program::transfer(cpi_context, amount)
+    }
+
+    pub fn take_tokens_from_sender<'r>(
+        target_pool: &Account<'r, TokenAccount>,
+        signer: &Signer<'r>,
+        sender_ata: &Account<'r, TokenAccount>,
+        token_program: &Program<'r, Token>,
+        amount: u64,
+    ) -> Result<()> {
+        let transfer_instruction = anchor_spl::token::Transfer {
+            from: sender_ata.to_account_info(),
+            to: target_pool.to_account_info(),
+            authority: signer.to_account_info(),
+        };
+
+        let cpi_ctx = CpiContext::new(token_program.to_account_info(), transfer_instruction);
+
+        anchor_spl::token::transfer(cpi_ctx, amount)
+    }
+
+    pub fn close_pool<'r>(
+        event: &Account<'r, PredictionEvent>,
+        pool: &Account<'r, TokenAccount>,
+        destination: &Signer<'r>,
+        token_program: &Program<'r, Token>,
+    ) -> Result<()> {
+        let cpi_accounts = anchor_spl::token::CloseAccount {
+            account: pool.to_account_info(),
+            destination: destination.to_account_info(),
+            authority: event.to_account_info(),
+        };
+
+        let cpi_program = token_program.to_account_info();
+
+        let bump = event.bump;
+
+        let seeds = &[PREDICTION_EVENT_SEEDS_PREFIX, event.id.as_ref(), &[bump]];
+
+        let signer_seeds = &[&seeds[..]];
+
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
+
+        anchor_spl::token::close_account(cpi_ctx)
+    }
+
+    pub fn is_finished(&self) -> Result<bool> {
+        let clock = Clock::get()?;
+        let current_timestamp = clock.unix_timestamp as u64;
+
+        Ok(self.end_date <= current_timestamp)
+    }
+
+    pub fn is_started(&self) -> Result<bool> {
+        let clock = Clock::get()?;
+        let current_timestamp = clock.unix_timestamp as u64;
+
+        Ok(self.start_date <= current_timestamp)
+    }
 }

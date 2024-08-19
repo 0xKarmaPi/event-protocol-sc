@@ -1,56 +1,51 @@
-import { Program, Wallet, web3 } from "@coral-xyz/anchor"
+import { Program, web3 } from "@coral-xyz/anchor"
 import * as spl from "@solana/spl-token"
 import { BN } from "bn.js"
 import { EventProtocol } from "../target/types/event_protocol"
-import { createKeyPairWithAssets } from "./create-keypair-with-assets"
-import { SELECTION } from "./const"
+import {
+  SIDE,
+  TICKET_SEEDS_PREFIX,
+  TOKENS_LEFT_POOL_SEEDS_PREFIX,
+  TOKENS_RIGHT_POOL_SEEDS_PREFIX
+} from "./const"
 
 export async function makeAVote(
+  signer: web3.Keypair,
   program: Program<EventProtocol>,
-  minter: Wallet,
-  predictionEvent: web3.PublicKey,
+  event: web3.PublicKey,
   selection: "left" | "right",
   amount: number
 ) {
-  const predictionEventAcc = await program.account.predictionEvent.fetch(
-    predictionEvent
-  )
+  const eventAcc = await program.account.predictionEvent.fetch(event)
 
   if (selection === "left") {
-    if (predictionEventAcc.leftMint) {
-      const someone = await createKeyPairWithAssets(
-        program.provider.connection,
-        minter,
-        3 + amount,
-        [{ mint: predictionEventAcc.leftMint, balance: 10 }]
-      )
-
+    if (eventAcc.leftMint) {
       const senderAta = await spl.getOrCreateAssociatedTokenAccount(
         program.provider.connection,
-        someone,
-        predictionEventAcc.leftMint,
-        someone.publicKey
+        signer,
+        eventAcc.leftMint,
+        signer.publicKey
       )
 
       const [leftPool] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("left_pool"), predictionEventAcc.id.toBuffer()],
+        [TOKENS_LEFT_POOL_SEEDS_PREFIX, eventAcc.id.toBuffer()],
         program.programId
       )
 
       const [ticket] = web3.PublicKey.findProgramAddressSync(
         [
-          Buffer.from("ticket"),
+          TICKET_SEEDS_PREFIX,
           Buffer.from("left"),
-          predictionEventAcc.id.toBuffer(),
-          someone.publicKey.toBuffer()
+          eventAcc.id.toBuffer(),
+          signer.publicKey.toBuffer()
         ],
         program.programId
       )
 
       await program.methods
-        .voteEvent(SELECTION.Left, new BN(amount * web3.LAMPORTS_PER_SOL))
+        .voteEvent(SIDE.Left, new BN(amount * web3.LAMPORTS_PER_SOL))
         .accountsStrict({
-          leftMint: predictionEventAcc.leftMint,
+          leftMint: eventAcc.leftMint,
           leftPool: leftPool,
           leftSenderAta: senderAta.address,
 
@@ -58,41 +53,34 @@ export async function makeAVote(
           rightMint: null,
           rightSenderAta: null,
 
-          predictionEvent,
-          rent: web3.SYSVAR_RENT_PUBKEY,
-          systemProgram: web3.SystemProgram.programId,
-          signer: someone.publicKey,
+          event,
           ticket,
+          systemProgram: web3.SystemProgram.programId,
+          signer: signer.publicKey,
           tokenProgram: spl.TOKEN_PROGRAM_ID
         })
-        .signers([someone])
+        .signers([signer])
         .rpc()
 
       console.log(
-        `${someone.publicKey.toBase58()} has voted left ${amount} tokens`
+        `${signer.publicKey.toBase58()} has voted left ${amount} tokens`
       )
 
-      return someone
+      return ticket
     }
-
-    const someone = await createKeyPairWithAssets(
-      program.provider.connection,
-      minter,
-      3 + amount
-    )
 
     const [ticket] = web3.PublicKey.findProgramAddressSync(
       [
-        Buffer.from("ticket"),
+        TICKET_SEEDS_PREFIX,
         Buffer.from("left"),
-        predictionEventAcc.id.toBuffer(),
-        someone.publicKey.toBuffer()
+        eventAcc.id.toBuffer(),
+        signer.publicKey.toBuffer()
       ],
       program.programId
     )
 
     await program.methods
-      .voteEvent(SELECTION.Left, new BN(amount * web3.LAMPORTS_PER_SOL))
+      .voteEvent(SIDE.Left, new BN(amount * web3.LAMPORTS_PER_SOL))
       .accountsStrict({
         leftMint: null,
         leftPool: null,
@@ -102,97 +90,82 @@ export async function makeAVote(
         rightPool: null,
         rightSenderAta: null,
 
-        predictionEvent,
-        rent: web3.SYSVAR_RENT_PUBKEY,
+        event,
         systemProgram: web3.SystemProgram.programId,
-        signer: someone.publicKey,
+        signer: signer.publicKey,
         ticket,
         tokenProgram: spl.TOKEN_PROGRAM_ID
       })
-      .signers([someone])
+      .signers([signer])
       .rpc()
 
-    console.log(`${someone.publicKey.toBase58()} has voted left ${amount} sols`)
+    console.log(`${signer.publicKey.toBase58()} has voted left ${amount} sols`)
 
-    return someone
+    return ticket
   }
 
-  if (predictionEventAcc.rightMint) {
-    const someone = await createKeyPairWithAssets(
-      program.provider.connection,
-      minter,
-      3 + amount,
-      [{ mint: predictionEventAcc.rightMint, balance: 10 }]
-    )
-
+  if (eventAcc.rightMint) {
     const senderAta = await spl.getOrCreateAssociatedTokenAccount(
       program.provider.connection,
-      someone,
-      predictionEventAcc.rightMint,
-      someone.publicKey
+      signer,
+      eventAcc.rightMint,
+      signer.publicKey
     )
 
     const [rightPool] = web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("right_pool"), predictionEventAcc.id.toBuffer()],
+      [TOKENS_RIGHT_POOL_SEEDS_PREFIX, eventAcc.id.toBuffer()],
       program.programId
     )
 
     const [ticket] = web3.PublicKey.findProgramAddressSync(
       [
-        Buffer.from("ticket"),
+        TICKET_SEEDS_PREFIX,
         Buffer.from("right"),
-        predictionEventAcc.id.toBuffer(),
-        someone.publicKey.toBuffer()
+        eventAcc.id.toBuffer(),
+        signer.publicKey.toBuffer()
       ],
       program.programId
     )
 
     await program.methods
-      .voteEvent(SELECTION.Right, new BN(amount * web3.LAMPORTS_PER_SOL))
+      .voteEvent(SIDE.Right, new BN(amount * web3.LAMPORTS_PER_SOL))
       .accountsStrict({
         leftMint: null,
         leftPool: null,
         leftSenderAta: null,
 
         rightPool,
-        rightMint: predictionEventAcc.rightMint,
+        rightMint: eventAcc.rightMint,
         rightSenderAta: senderAta.address,
 
-        predictionEvent,
-        rent: web3.SYSVAR_RENT_PUBKEY,
+        event,
         systemProgram: web3.SystemProgram.programId,
-        signer: someone.publicKey,
+        signer: signer.publicKey,
         ticket,
         tokenProgram: spl.TOKEN_PROGRAM_ID
       })
-      .signers([someone])
+      .signers([signer])
       .rpc()
 
     console.log(
-      `${someone.publicKey.toBase58()} has voted right ${amount} tokens`
+      `${signer.publicKey.toBase58()} has voted right ${amount} tokens`
     )
 
-    return someone
+    return ticket
   }
-
-  const someone = await createKeyPairWithAssets(
-    program.provider.connection,
-    minter,
-    3 + amount
-  )
 
   const [ticket] = web3.PublicKey.findProgramAddressSync(
     [
-      Buffer.from("ticket"),
+      TICKET_SEEDS_PREFIX,
       Buffer.from("right"),
-      predictionEventAcc.id.toBuffer(),
-      someone.publicKey.toBuffer()
+      eventAcc.id.toBuffer(),
+      signer.publicKey.toBuffer()
     ],
     program.programId
   )
 
   await program.methods
-    .voteEvent(SELECTION.Right, new BN(amount * web3.LAMPORTS_PER_SOL))
+    .voteEvent(SIDE.Right, new BN(amount * web3.LAMPORTS_PER_SOL))
     .accountsStrict({
       leftMint: null,
       leftPool: null,
@@ -202,17 +175,16 @@ export async function makeAVote(
       rightPool: null,
       rightSenderAta: null,
 
-      predictionEvent,
-      rent: web3.SYSVAR_RENT_PUBKEY,
+      event,
       systemProgram: web3.SystemProgram.programId,
-      signer: someone.publicKey,
+      signer: signer.publicKey,
       ticket,
       tokenProgram: spl.TOKEN_PROGRAM_ID
     })
-    .signers([someone])
+    .signers([signer])
     .rpc()
 
-  console.log(`${someone.publicKey.toBase58()} has voted right ${amount} sols`)
+  console.log(`${signer.publicKey.toBase58()} has voted right ${amount} sols`)
 
-  return someone
+  return ticket
 }

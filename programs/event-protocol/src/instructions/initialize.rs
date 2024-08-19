@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::master::Master;
+use crate::{constants::MASTER_SEEDS, state::Master};
 
 #[derive(Accounts)]
 pub struct Initialize<'r> {
@@ -12,7 +12,7 @@ pub struct Initialize<'r> {
         space = 8 + Master::INIT_SPACE,
         payer = signer,
         seeds = [
-            Master::SEED_PREFIX,
+            MASTER_SEEDS,
         ],
         bump,
     )]

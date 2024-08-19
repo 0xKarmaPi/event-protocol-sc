@@ -4,6 +4,7 @@ import { web3 } from "@coral-xyz/anchor"
 import { Program } from "@coral-xyz/anchor"
 import { EventProtocol } from "../target/types/event_protocol"
 import { expect } from "chai"
+import { MASTER_SEEDS } from "../test-helper/const"
 
 describe("initialize instruction", () => {
   const provider = anchor.AnchorProvider.env()
@@ -14,7 +15,7 @@ describe("initialize instruction", () => {
 
   it("initialize master", async () => {
     const [master, bump] = web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("master")],
+      [MASTER_SEEDS],
       program.programId
     )
 

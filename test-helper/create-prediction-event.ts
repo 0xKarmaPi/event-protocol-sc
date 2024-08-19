@@ -3,78 +3,129 @@ import * as spl from "@solana/spl-token"
 import { web3 } from "@coral-xyz/anchor"
 import { EventProtocol } from "../target/types/event_protocol"
 import { BN } from "bn.js"
+import {
+  PREDICTION_EVENT_SEEDS_PREFIX,
+  SIDE,
+  TOKENS_LEFT_POOL_SEEDS_PREFIX,
+  TOKENS_RIGHT_POOL_SEEDS_PREFIX
+} from "./const"
 
-type Options = "some::some" | "some::none" | "none::some" | "none::none"
+type Kind = "some::some" | "some::none" | "none::some" | "none::none"
 
-export async function createPredictionEvent(
+type Options<
+  K,
+  L = K extends "some::some" | "some::none" ? web3.PublicKey : null,
+  R = K extends "some::some" | "none::some" ? web3.PublicKey : null
+> = {
+  kind: K
+  leftMint: L
+  rightMint: R
+  title?: string
+  description?: string
+  startDate?: anchor.BN
+  endDate?: anchor.BN
+}
+
+export async function createPredictionEvent<K extends Kind>(
   signer: anchor.Wallet,
-  provider: anchor.AnchorProvider,
   program: anchor.Program<EventProtocol>,
-  options: Options,
-  endDate = new Date().getTime() / 1000 + 7 * 24 * 60 * 60
+  options: Options<K>
 ) {
+  const {
+    kind,
+    description = "some(description)",
+    title = "some(title)",
+    leftMint,
+    rightMint,
+    startDate = new BN(Math.floor(new Date().getTime() / 1000 - 10)),
+    endDate = new BN(Math.floor(new Date().getTime() / 1000 + 2))
+  } = options
   const id = web3.Keypair.generate().publicKey
 
-  const [predictionEvent] = web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("prediction_event"), id.toBuffer()],
+  const [event] = web3.PublicKey.findProgramAddressSync(
+    [PREDICTION_EVENT_SEEDS_PREFIX, id.toBuffer()],
     program.programId
   )
 
   const [leftPool] = web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("left_pool"), id.toBuffer()],
+    [TOKENS_LEFT_POOL_SEEDS_PREFIX, id.toBuffer()],
     program.programId
   )
 
   const [rightPool] = web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("right_pool"), id.toBuffer()],
+    [TOKENS_RIGHT_POOL_SEEDS_PREFIX, id.toBuffer()],
     program.programId
   )
 
-  const leftMint = await spl.createMint(
-    provider.connection,
-    signer.payer,
-    signer.publicKey,
-    null,
-    9
-  )
+  const transaction = new web3.Transaction()
 
-  const rightMint = await spl.createMint(
-    provider.connection,
-    signer.payer,
-    signer.publicKey,
-    null,
-    9
-  )
-
-  const isLeftSome = options === "some::some" || options === "some::none"
-  const isRightSome = options === "some::some" || options === "none::some"
-
-  await program.methods
-    .deployEvent(id, "some(title)", "some(description)", new BN(endDate))
+  const deployEventIns = await program.methods
+    .deployEvent(id, title, description, startDate, endDate, false)
     .accountsStrict({
       payer: signer.publicKey,
-      predictionEvent,
+      event,
       systemProgram: web3.SystemProgram.programId,
-      leftMint: isLeftSome ? leftMint : null,
-      rightMint: isRightSome ? rightMint : null,
-      leftPool: isLeftSome ? leftPool : null,
-      rightPool: isRightSome ? rightPool : null,
-      tokenProgram: spl.TOKEN_PROGRAM_ID,
-      rent: web3.SYSVAR_RENT_PUBKEY
+      leftMint,
+      rightMint,
+      tokenProgram: spl.TOKEN_PROGRAM_ID
     })
-    .rpc()
+    .instruction()
 
-  const predictionEventAcc = await program.account.predictionEvent.fetch(
-    predictionEvent
+  transaction.add(deployEventIns)
+
+  if (isLeftSome(kind)) {
+    const creatLeftTokenEventPoolIns = await program.methods
+      .createTokenEventPool(id, SIDE.Left)
+      .accountsStrict({
+        event,
+        mint: leftMint!,
+        pool: leftPool,
+        signer: signer.publicKey,
+        systemProgram: web3.SystemProgram.programId,
+        tokenProgram: spl.TOKEN_PROGRAM_ID
+      })
+      .instruction()
+
+    transaction.add(creatLeftTokenEventPoolIns)
+  }
+
+  if (isRightSome(kind)) {
+    const creatRightTokenEventPoolIns = await program.methods
+      .createTokenEventPool(id, SIDE.Right)
+      .accountsStrict({
+        event,
+        mint: rightMint!,
+        pool: rightPool,
+        signer: signer.publicKey,
+        systemProgram: web3.SystemProgram.programId,
+        tokenProgram: spl.TOKEN_PROGRAM_ID
+      })
+      .instruction()
+
+    transaction.add(creatRightTokenEventPoolIns)
+  }
+
+  await web3.sendAndConfirmTransaction(
+    program.provider.connection,
+    transaction,
+    [signer.payer]
   )
+
+  const eventAcc = await program.account.predictionEvent.fetch(event)
 
   return {
     id,
-    predictionEvent,
-    predictionEventAcc,
-    leftMint,
-    rightMint,
+    event,
+    eventAcc,
     leftPool,
     rightPool
   }
+}
+
+function isLeftSome(kind: Kind): kind is "some::some" | "some::none" {
+  return kind === "some::none" || kind === "some::some"
+}
+
+function isRightSome(kind: Kind): kind is "some::some" | "none::some" {
+  return kind === "none::some" || kind === "some::some"
 }
