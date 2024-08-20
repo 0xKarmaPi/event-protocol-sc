@@ -46,4 +46,7 @@ pub enum Error {
 
     #[msg("The event is not allow to withdraw, the losing side tokens had burned")]
     BurningEvent,
+
+    #[msg("Missing system program")]
+    MissingSystemProgram,
 }

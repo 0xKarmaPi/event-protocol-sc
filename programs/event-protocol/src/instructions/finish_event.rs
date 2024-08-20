@@ -38,6 +38,7 @@ pub struct FinishEvent<'r> {
     event: Account<'r, PredictionEvent>,
 
     #[account(
+        mut,
         constraint = left_mint.key() == event.left_mint.ok_or(Error::NonLeftEvent)?.key()
     )]
     left_mint: Option<Account<'r, Mint>>,
@@ -74,6 +75,7 @@ pub struct FinishEvent<'r> {
     left_creator_fee: Option<Account<'r, TokenAccount>>,
 
     #[account(
+        mut,
         constraint = right_mint.key() == event.right_mint.ok_or(Error::NonRightEvent)?.key()
     )]
     right_mint: Option<Account<'r, Mint>>,
@@ -116,6 +118,7 @@ pub struct FinishEvent<'r> {
     associated_token_program: Program<'r, AssociatedToken>,
 }
 
+// transfer 2.5% to creator and platform, burn 95% remaininng if event.burning
 pub fn handler(ctx: Context<FinishEvent>, result: Side) -> Result<()> {
     let event = &mut ctx.accounts.event;
 
@@ -137,16 +140,10 @@ pub fn handler(ctx: Context<FinishEvent>, result: Side) -> Result<()> {
 
 fn handle_set_left(ctx: Context<FinishEvent>) -> Result<()> {
     let event = &mut ctx.accounts.event;
-    let signer = &ctx.accounts.signer;
-    let token_program = &ctx.accounts.token_program;
-    let master = &ctx.accounts.master;
-    let right_pool = &ctx.accounts.right_pool;
 
-    let pool_amount = event.right_pool;
-    let amount = pool_amount / 1000 * 25;
+    let amount = event.right_pool / 1000 * 25;
 
     if event.right_mint.is_some() {
-        // transfer 2.5 % token to creator and platform from right pool
         let creator_fee_ata = ctx
             .accounts
             .right_creator_fee
@@ -159,7 +156,13 @@ fn handle_set_left(ctx: Context<FinishEvent>) -> Result<()> {
             .as_ref()
             .ok_or(Error::MissingPlatformFeeAta)?;
 
-        let pool = right_pool.as_ref().ok_or(Error::NonRightEvent)?;
+        let pool = ctx
+            .accounts
+            .right_pool
+            .as_mut()
+            .ok_or(Error::MissingRightPool)?;
+
+        let token_program = &ctx.accounts.token_program;
 
         event.transfer_tokens_from_pool(
             pool,
@@ -174,8 +177,20 @@ fn handle_set_left(ctx: Context<FinishEvent>) -> Result<()> {
             token_program,
             amount,
         )?;
+
+        if event.burning {
+            let mint = ctx
+                .accounts
+                .right_mint
+                .as_ref()
+                .ok_or(Error::MissingRightMint)?;
+
+            event.burn_tokens_from_pool(mint, pool, token_program)?;
+        }
     } else {
-        // transfer 2.5 % sol to creator and platform from sol right pool
+        let master = &ctx.accounts.master;
+        let signer = &ctx.accounts.signer;
+
         event.sub_lamports(amount)?;
         signer.add_lamports(amount)?;
 
@@ -190,13 +205,8 @@ fn handle_set_left(ctx: Context<FinishEvent>) -> Result<()> {
 
 fn handle_set_right(ctx: Context<FinishEvent>) -> Result<()> {
     let event = &mut ctx.accounts.event;
-    let signer = &ctx.accounts.signer;
-    let token_program = &ctx.accounts.token_program;
-    let master = &ctx.accounts.master;
-    let left_pool = &ctx.accounts.left_pool;
 
-    let pool_amount = event.left_pool;
-    let amount = pool_amount / 1000 * 25;
+    let amount = event.left_pool / 1000 * 25;
 
     if event.left_mint.is_some() {
         // transfer 2.5 % token to creator and platform from left pool
@@ -212,7 +222,13 @@ fn handle_set_right(ctx: Context<FinishEvent>) -> Result<()> {
             .as_ref()
             .ok_or(Error::MissingPlatformFeeAta)?;
 
-        let pool = left_pool.as_ref().ok_or(Error::NonLeftEvent)?;
+        let pool = ctx
+            .accounts
+            .left_pool
+            .as_mut()
+            .ok_or(Error::MissingLeftPool)?;
+
+        let token_program = &ctx.accounts.token_program;
 
         event.transfer_tokens_from_pool(
             pool,
@@ -227,8 +243,21 @@ fn handle_set_right(ctx: Context<FinishEvent>) -> Result<()> {
             token_program,
             amount,
         )?;
+
+        if event.burning {
+            let mint = ctx
+                .accounts
+                .left_mint
+                .as_ref()
+                .ok_or(Error::MissingLeftMint)?;
+
+            event.burn_tokens_from_pool(mint, pool, token_program)?;
+        }
     } else {
         // transfer 2.5 % sol to creator and platform from sol left pool
+        let master = &ctx.accounts.master;
+        let signer = &ctx.accounts.signer;
+
         event.sub_lamports(amount)?;
         signer.add_lamports(amount)?;
 

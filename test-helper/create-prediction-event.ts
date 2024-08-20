@@ -24,6 +24,7 @@ type Options<
   description?: string
   startDate?: anchor.BN
   endDate?: anchor.BN
+  burning?: boolean
 }
 
 export async function createPredictionEvent<K extends Kind>(
@@ -38,7 +39,8 @@ export async function createPredictionEvent<K extends Kind>(
     leftMint,
     rightMint,
     startDate = new BN(Math.floor(new Date().getTime() / 1000 - 10)),
-    endDate = new BN(Math.floor(new Date().getTime() / 1000 + 2))
+    endDate = new BN(Math.floor(new Date().getTime() / 1000 + 2)),
+    burning = false
   } = options
   const id = web3.Keypair.generate().publicKey
 
@@ -60,7 +62,7 @@ export async function createPredictionEvent<K extends Kind>(
   const transaction = new web3.Transaction()
 
   const deployEventIns = await program.methods
-    .deployEvent(id, title, description, startDate, endDate, false)
+    .deployEvent(id, title, description, startDate, endDate, burning)
     .accountsStrict({
       payer: signer.publicKey,
       event,
