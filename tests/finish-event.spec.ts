@@ -42,15 +42,11 @@ describe("finish_event instruction", () => {
   })
 
   it("finish a SS event", async () => {
-    const { rightPool, event, id } = await createPredictionEvent(
-      signer,
-      program,
-      {
-        kind: "some::some",
-        leftMint,
-        rightMint
-      }
-    )
+    const { rightPool, event } = await createPredictionEvent(signer, program, {
+      kind: "some::some",
+      leftMint,
+      rightMint
+    })
 
     const [rightPlatformPool] = web3.PublicKey.findProgramAddressSync(
       [TOKENS_PLATFORM_POOL_SEEDS_PREFIX, rightMint.toBuffer()],
@@ -135,5 +131,82 @@ describe("finish_event instruction", () => {
 
     expect(creatorAta.amount).eq(BigInt(0.6 * web3.LAMPORTS_PER_SOL * 0.025))
     expect(platformAta.amount).eq(BigInt(0.6 * web3.LAMPORTS_PER_SOL * 0.025))
+  })
+
+  it("finish a event, the tokens losing side should be burned", async () => {
+    const { rightPool, event } = await createPredictionEvent(signer, program, {
+      kind: "some::some",
+      leftMint,
+      rightMint,
+      burning: true
+    })
+
+    const [rightPlatformPool] = web3.PublicKey.findProgramAddressSync(
+      [TOKENS_PLATFORM_POOL_SEEDS_PREFIX, rightMint.toBuffer()],
+      program.programId
+    )
+
+    const transaction = new web3.Transaction()
+
+    const createRightPlatformPoolIns = await program.methods
+      .createTokenPlatformPool()
+      .accountsStrict({
+        mint: rightMint,
+        platformPool: rightPlatformPool,
+        signer: signer.publicKey,
+        systemProgram: web3.SystemProgram.programId,
+        tokenProgram: spl.TOKEN_PROGRAM_ID
+      })
+      .instruction()
+
+    transaction.add(createRightPlatformPoolIns)
+
+    const rightCreatorFee = await addCreateAtaInsIfNotExist(
+      transaction,
+      provider.connection,
+      signer.publicKey,
+      rightMint,
+      signer.publicKey
+    )
+
+    await Promise.all([
+      makeAVote(goni, program, event, "left", 0.8),
+      makeAVote(asura, program, event, "right", 0.8)
+    ])
+
+    await sleep(3000)
+
+    const finishEventIns = await program.methods
+      .finishEvent(SIDE.Left)
+      .accountsStrict({
+        leftMint: null,
+        leftCreatorFee: null,
+        leftPlatformFee: null,
+        leftPool: null,
+
+        rightMint,
+        rightCreatorFee: rightCreatorFee,
+        rightPlatformFee: rightPlatformPool,
+        rightPool,
+
+        master,
+        event,
+
+        signer: signer.publicKey,
+        systemProgram: web3.SystemProgram.programId,
+        tokenProgram: spl.TOKEN_PROGRAM_ID,
+        associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID
+      })
+      .instruction()
+
+    transaction.add(finishEventIns)
+
+    await web3.sendAndConfirmTransaction(provider.connection, transaction, [
+      signer.payer
+    ])
+
+    const { amount } = await spl.getAccount(provider.connection, rightPool)
+
+    expect(amount).eq(BigInt(0))
   })
 })

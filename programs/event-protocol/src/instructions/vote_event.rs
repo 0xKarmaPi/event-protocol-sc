@@ -127,13 +127,19 @@ fn handle_vote_left(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
     let event = &mut ctx.accounts.event;
     let signer = &ctx.accounts.signer;
     let left_mint = &ctx.accounts.left_mint;
-    let left_pool = &ctx.accounts.left_pool;
-    let left_sender_ata = &ctx.accounts.left_sender_ata;
 
     if left_mint.is_some() {
-        let left_pool = left_pool.as_ref().ok_or(Error::MissingLeftPool)?;
+        let left_pool = ctx
+            .accounts
+            .left_pool
+            .as_ref()
+            .ok_or(Error::MissingLeftPool)?;
 
-        let left_sender_ata = left_sender_ata.as_ref().ok_or(Error::MissingSenderAta)?;
+        let left_sender_ata = ctx
+            .accounts
+            .left_sender_ata
+            .as_ref()
+            .ok_or(Error::MissingSenderAta)?;
 
         let token_program = &ctx.accounts.token_program;
 
@@ -155,13 +161,19 @@ fn handle_vote_right(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
     let event = &mut ctx.accounts.event;
     let signer = &ctx.accounts.signer;
     let right_mint = &ctx.accounts.right_mint;
-    let right_pool = &ctx.accounts.right_pool;
-    let right_sender_ata = &ctx.accounts.right_sender_ata;
 
     if right_mint.is_some() {
-        let right_pool = right_pool.as_ref().ok_or(Error::NonRightEvent)?;
+        let right_pool = ctx
+            .accounts
+            .right_pool
+            .as_ref()
+            .ok_or(Error::MissingRightPool)?;
 
-        let right_sender_ata = right_sender_ata.as_ref().ok_or(Error::MissingSenderAta)?;
+        let right_sender_ata = ctx
+            .accounts
+            .right_sender_ata
+            .as_ref()
+            .ok_or(Error::MissingSenderAta)?;
 
         let token_program = &ctx.accounts.token_program;
 

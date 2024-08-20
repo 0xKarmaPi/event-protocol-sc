@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Token, TokenAccount};
+use anchor_spl::token::{Mint, Token, TokenAccount};
 
 use crate::constants::PREDICTION_EVENT_SEEDS_PREFIX;
 
@@ -79,6 +79,13 @@ pub trait PredictionEventAccount<'r> {
         destination: &Signer<'r>,
         token_program: &Program<'r, Token>,
     ) -> Result<()>;
+
+    fn burn_tokens_from_pool(
+        &self,
+        mint: &Account<'r, Mint>,
+        pool: &mut Account<'r, TokenAccount>,
+        token_program: &Program<'r, Token>,
+    ) -> Result<()>;
 }
 
 impl<'r> PredictionEventAccount<'r> for Account<'r, PredictionEvent> {
@@ -150,6 +157,35 @@ impl<'r> PredictionEventAccount<'r> for Account<'r, PredictionEvent> {
         let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
 
         anchor_spl::token::close_account(cpi_ctx)
+    }
+
+    fn burn_tokens_from_pool(
+        &self,
+        mint: &Account<'r, Mint>,
+        pool: &mut Account<'r, TokenAccount>,
+        token_program: &Program<'r, Token>,
+    ) -> Result<()> {
+        let cpi_accounts = anchor_spl::token::Burn {
+            mint: mint.to_account_info(),
+            from: pool.to_account_info(),
+            authority: self.to_account_info(),
+        };
+
+        let signer_seeds: &[&[&[u8]]] = &[&[
+            PREDICTION_EVENT_SEEDS_PREFIX,
+            self.id.as_ref(),
+            &[self.bump],
+        ]];
+
+        let cpi_ctx = CpiContext::new_with_signer(
+            token_program.to_account_info(),
+            cpi_accounts,
+            signer_seeds,
+        );
+
+        pool.reload()?;
+
+        anchor_spl::token::burn(cpi_ctx, pool.amount)
     }
 }
 
