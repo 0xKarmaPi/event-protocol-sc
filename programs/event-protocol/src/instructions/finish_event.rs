@@ -4,12 +4,15 @@ use anchor_spl::token::{Mint, Token, TokenAccount};
 
 use crate::constants::{
     MASTER_SEEDS, PREDICTION_EVENT_SEEDS_PREFIX, TOKENS_LEFT_POOL_SEEDS_PREFIX,
-    TOKENS_PLATFORM_POOL_SEEDS_PREFIX, TOKENS_RIGHT_POOL_SEEDS_PREFIX,
+    TOKENS_RIGHT_POOL_SEEDS_PREFIX, TOKENS_SYSTEM_FEE_SEEDS_PREFIX,
 };
 use crate::error::Error;
 use crate::events::FinishEvtEvent;
 use crate::state::{Master, PredictionEvent, PredictionEventAccount, Side};
 
+/// The instruction allow creator to set result for event
+/// Transfer 2.5% tokens from losing side to creator and 2.5% to the system (if it is native sol token transfer to master)
+/// Burn the losing side token if event is burning option
 #[derive(Accounts)]
 pub struct FinishEvent<'r> {
     #[account(
@@ -19,11 +22,10 @@ pub struct FinishEvent<'r> {
     signer: Signer<'r>,
 
     #[account(
-        mut,
         seeds = [
-            MASTER_SEEDS,
+            MASTER_SEEDS
         ],
-        bump,
+        bump
     )]
     master: Account<'r, Master>,
 
@@ -31,9 +33,9 @@ pub struct FinishEvent<'r> {
         mut,
         seeds = [
             PREDICTION_EVENT_SEEDS_PREFIX,
-            event.id.key().as_ref(),
+            event.id.key().as_ref()
         ],
-        bump,
+        bump
     )]
     event: Account<'r, PredictionEvent>,
 
@@ -51,28 +53,28 @@ pub struct FinishEvent<'r> {
         ],
         token::mint = left_mint,
         token::authority = event,
-        bump,
+        bump
     )]
     left_pool: Option<Account<'r, TokenAccount>>,
 
     #[account(
         mut,
         seeds = [
-            TOKENS_PLATFORM_POOL_SEEDS_PREFIX,
+            TOKENS_SYSTEM_FEE_SEEDS_PREFIX,
             event.left_mint.ok_or(Error::NonLeftEvent)?.as_ref()
         ],
         token::mint = left_mint,
-        token::authority = left_platform_fee,
-        bump,
+        token::authority = system_left_fee,
+        bump
     )]
-    left_platform_fee: Option<Account<'r, TokenAccount>>,
+    system_left_fee: Option<Account<'r, TokenAccount>>,
 
     #[account(
         mut,
         associated_token::mint = left_mint,
         associated_token::authority = signer,
     )]
-    left_creator_fee: Option<Account<'r, TokenAccount>>,
+    creator_left_beneficiary_ata: Option<Account<'r, TokenAccount>>,
 
     #[account(
         mut,
@@ -88,28 +90,28 @@ pub struct FinishEvent<'r> {
         ],
         token::mint = right_mint,
         token::authority = event,
-        bump,
+        bump
     )]
     right_pool: Option<Account<'r, TokenAccount>>,
 
     #[account(
         mut,
         seeds = [
-            TOKENS_PLATFORM_POOL_SEEDS_PREFIX,
+            TOKENS_SYSTEM_FEE_SEEDS_PREFIX,
             event.right_mint.ok_or(Error::NonRightEvent)?.as_ref()
         ],
         token::mint = right_mint,
-        token::authority = right_platform_fee,
+        token::authority = system_right_fee,
         bump,
     )]
-    right_platform_fee: Option<Account<'r, TokenAccount>>,
+    system_right_fee: Option<Account<'r, TokenAccount>>,
 
     #[account(
         mut,
         associated_token::mint = right_mint,
         associated_token::authority = signer,
     )]
-    right_creator_fee: Option<Account<'r, TokenAccount>>,
+    creator_right_beneficiary_ata: Option<Account<'r, TokenAccount>>,
 
     token_program: Program<'r, Token>,
 
@@ -118,7 +120,6 @@ pub struct FinishEvent<'r> {
     associated_token_program: Program<'r, AssociatedToken>,
 }
 
-// transfer 2.5% to creator and platform, burn 95% remaininng if event.burning
 pub fn handler(ctx: Context<FinishEvent>, result: Side) -> Result<()> {
     let event = &mut ctx.accounts.event;
 
@@ -144,15 +145,15 @@ fn handle_set_left(ctx: Context<FinishEvent>) -> Result<()> {
     let amount = event.right_pool / 1000 * 25;
 
     if event.right_mint.is_some() {
-        let creator_fee_ata = ctx
+        let creator_beneficiary_ata = ctx
             .accounts
-            .right_creator_fee
+            .creator_right_beneficiary_ata
             .as_ref()
             .ok_or(Error::MissingCreatorFeeAta)?;
 
-        let platform_fee_ata = ctx
+        let system_fee = ctx
             .accounts
-            .right_platform_fee
+            .system_right_fee
             .as_ref()
             .ok_or(Error::MissingPlatformFeeAta)?;
 
@@ -166,14 +167,14 @@ fn handle_set_left(ctx: Context<FinishEvent>) -> Result<()> {
 
         event.transfer_tokens_from_pool(
             pool,
-            creator_fee_ata.to_account_info(),
+            creator_beneficiary_ata.to_account_info(),
             token_program,
             amount,
         )?;
 
         event.transfer_tokens_from_pool(
             pool,
-            platform_fee_ata.to_account_info(),
+            system_fee.to_account_info(),
             token_program,
             amount,
         )?;
@@ -209,16 +210,15 @@ fn handle_set_right(ctx: Context<FinishEvent>) -> Result<()> {
     let amount = event.left_pool / 1000 * 25;
 
     if event.left_mint.is_some() {
-        // transfer 2.5 % token to creator and platform from left pool
-        let creator_fee_ata = ctx
+        let creator_beneficiary_ata = ctx
             .accounts
-            .left_creator_fee
+            .creator_left_beneficiary_ata
             .as_ref()
             .ok_or(Error::MissingCreatorFeeAta)?;
 
-        let platform_fee_ata = ctx
+        let system_fee = ctx
             .accounts
-            .left_platform_fee
+            .system_left_fee
             .as_ref()
             .ok_or(Error::MissingPlatformFeeAta)?;
 
@@ -232,14 +232,14 @@ fn handle_set_right(ctx: Context<FinishEvent>) -> Result<()> {
 
         event.transfer_tokens_from_pool(
             pool,
-            creator_fee_ata.to_account_info(),
+            creator_beneficiary_ata.to_account_info(),
             token_program,
             amount,
         )?;
 
         event.transfer_tokens_from_pool(
             pool,
-            platform_fee_ata.to_account_info(),
+            system_fee.to_account_info(),
             token_program,
             amount,
         )?;
@@ -254,7 +254,6 @@ fn handle_set_right(ctx: Context<FinishEvent>) -> Result<()> {
             event.burn_tokens_from_pool(mint, pool, token_program)?;
         }
     } else {
-        // transfer 2.5 % sol to creator and platform from sol left pool
         let master = &ctx.accounts.master;
         let signer = &ctx.accounts.signer;
 

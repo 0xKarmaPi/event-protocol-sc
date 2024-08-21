@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 
 use crate::{constants::MASTER_SEEDS, state::Master};
 
+/// The instuction to init master
 #[derive(Accounts)]
 pub struct Initialize<'r> {
     #[account(mut)]

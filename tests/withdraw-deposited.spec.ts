@@ -15,7 +15,7 @@ import { web3 } from "@coral-xyz/anchor"
 import * as spl from "@solana/spl-token"
 import { expect } from "chai"
 
-describe("claim_rewards instruction", () => {
+describe("withdraw deposited instruction", () => {
   const provider = anchor.AnchorProvider.env()
   anchor.setProvider(provider)
 
@@ -28,7 +28,7 @@ describe("claim_rewards instruction", () => {
   let goni: anchor.web3.Keypair
   let asura: anchor.web3.Keypair
 
-  let goniRightAta: anchor.web3.PublicKey
+  let goniLeftAta: anchor.web3.PublicKey
 
   before(async () => {
     const init = await mock(provider)
@@ -39,22 +39,24 @@ describe("claim_rewards instruction", () => {
     goni = init.goni
     asura = init.asura
 
-    goniRightAta = init.goniRightAta.address
+    goniLeftAta = init.goniLefAta.address
   })
 
-  it("claim on ss event", async () => {
-    const { event, rightPool } = await createPredictionEvent(signer, program, {
-      kind: "some::some",
-      leftMint,
-      rightMint
-    })
+  it("withdraw from a ss event", async () => {
+    const { event, rightPool, leftPool } = await createPredictionEvent(
+      signer,
+      program,
+      {
+        kind: "some::some",
+        leftMint,
+        rightMint
+      }
+    )
 
     const [goniLeftTicket] = await Promise.all([
       makeAVote(goni, program, event, "left", 3),
       makeAVote(asura, program, event, "right", 6)
     ])
-
-    await makeAVote(asura, program, event, "left", 3)
 
     await sleep(3000)
 
@@ -122,21 +124,20 @@ describe("claim_rewards instruction", () => {
 
     const { amount: before } = await spl.getAccount(
       provider.connection,
-      goniRightAta
+      goniLeftAta
     )
 
     await program.methods
-      .claimRewards()
+      .withdrawDeposited()
       .accountsStrict({
         event,
+        leftMint,
+        leftPool,
+        signerLeftBeneficiaryAta: goniLeftAta,
 
-        leftMint: null,
-        leftPool: null,
-        signerLeftBeneficiaryAta: null,
-
-        rightMint,
-        rightPool,
-        signerRightBeneficiaryAta: goniRightAta,
+        rightMint: null,
+        rightPool: null,
+        signerRightBeneficiaryAta: null,
 
         ticket: goniLeftTicket,
 
@@ -148,11 +149,11 @@ describe("claim_rewards instruction", () => {
       .signers([goni])
       .rpc()
 
-    const rewards = (3 + 3) * web3.LAMPORTS_PER_SOL * (3 / 6) * 0.95
+    const rewards = 3 * web3.LAMPORTS_PER_SOL
 
     const { amount: after } = await spl.getAccount(
       provider.connection,
-      goniRightAta
+      goniLeftAta
     )
 
     expect(before + BigInt(rewards)).eq(after)

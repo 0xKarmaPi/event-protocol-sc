@@ -64,7 +64,7 @@ export async function createPredictionEvent<K extends Kind>(
   const deployEventIns = await program.methods
     .deployEvent(id, title, description, startDate, endDate, burning)
     .accountsStrict({
-      payer: signer.publicKey,
+      signer: signer.publicKey,
       event,
       systemProgram: web3.SystemProgram.programId,
       leftMint,
@@ -77,7 +77,7 @@ export async function createPredictionEvent<K extends Kind>(
 
   if (isLeftSome(kind)) {
     const creatLeftTokenEventPoolIns = await program.methods
-      .createTokenEventPool(SIDE.Left)
+      .createEventTokenAccount(SIDE.Left)
       .accountsStrict({
         event,
         mint: leftMint!,
@@ -93,7 +93,7 @@ export async function createPredictionEvent<K extends Kind>(
 
   if (isRightSome(kind)) {
     const creatRightTokenEventPoolIns = await program.methods
-      .createTokenEventPool(SIDE.Right)
+      .createEventTokenAccount(SIDE.Right)
       .accountsStrict({
         event,
         mint: rightMint!,

@@ -30,12 +30,17 @@ pub mod event_protocol {
         deploy_event::handler(ctx, id, title, description, start_date, end_date, burning)
     }
 
-    pub fn create_token_event_pool(_ctx: Context<CreateTokenEventPool>, _side: Side) -> Result<()> {
-        create_token_event_pool::handler(_ctx, _side)
+    pub fn create_event_token_account(
+        _ctx: Context<CreateEventTokenAccount>,
+        _side: Side,
+    ) -> Result<()> {
+        create_event_token_account::handler(_ctx, _side)
     }
 
-    pub fn create_token_platform_pool(_ctx: Context<CreateTokenPlatformPool>) -> Result<()> {
-        create_token_platform_pool::handler(_ctx)
+    pub fn create_system_fee_token_account(
+        _ctx: Context<CreateSystemFeeTokenAccount>,
+    ) -> Result<()> {
+        create_system_fee_token_account::handler(_ctx)
     }
 
     pub fn vote_event(ctx: Context<VoteEvent>, selection: Side, amount: u64) -> Result<()> {
@@ -52,5 +57,9 @@ pub mod event_protocol {
 
     pub fn close_event(ctx: Context<CloseEvent>) -> Result<()> {
         close_event::handler(ctx)
+    }
+
+    pub fn withdraw_deposited(ctx: Context<WithdrawDeposited>) -> Result<()> {
+        withdraw_deposited::handler(ctx)
     }
 }

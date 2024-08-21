@@ -6,18 +6,21 @@ use crate::{
     state::{PredictionEvent, Side},
 };
 
+/// The instruction is a part of the deploy_event instruction
+/// It allow to create pool token account to hold tokens from two sides 
+/// We need to break it down from the deploy_event instruction because of anchor limited stack issue
 #[derive(Accounts)]
 #[instruction(_side: Side)]
-pub struct CreateTokenEventPool<'r> {
+pub struct CreateEventTokenAccount<'r> {
     #[account(mut)]
     signer: Signer<'r>,
 
     #[account(
         seeds = [
             PREDICTION_EVENT_SEEDS_PREFIX,
-            event.id.key().as_ref(),
+            event.id.key().as_ref()
         ],
-        bump,
+        bump
     )]
     event: Account<'r, PredictionEvent>,
 
@@ -32,7 +35,7 @@ pub struct CreateTokenEventPool<'r> {
         ],
         token::mint = mint,
         token::authority = event,
-        bump,
+        bump
     )]
     pool: Account<'r, TokenAccount>,
 
@@ -41,6 +44,6 @@ pub struct CreateTokenEventPool<'r> {
     system_program: Program<'r, System>,
 }
 
-pub fn handler(_ctx: Context<CreateTokenEventPool>, _side: Side) -> Result<()> {
+pub fn handler(_ctx: Context<CreateEventTokenAccount>, _side: Side) -> Result<()> {
     Ok(())
 }

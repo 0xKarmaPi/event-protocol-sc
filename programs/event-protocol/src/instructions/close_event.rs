@@ -10,19 +10,23 @@ use crate::{
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
+/// The instuction allow to close event before starting
+/// Close the pools token account if either two sides were set non native token instead
 #[derive(Accounts)]
 pub struct CloseEvent<'r> {
+    /// The transaction's signer
     #[account(
         mut,
         constraint = signer.key() == event.creator
     )]
     signer: Signer<'r>,
 
+    /// The prediction event
     #[account(
         mut,
         seeds = [
             PREDICTION_EVENT_SEEDS_PREFIX,
-            event.id.key().as_ref(),
+            event.id.key().as_ref()
         ],
         bump,
         close = signer,
@@ -30,11 +34,13 @@ pub struct CloseEvent<'r> {
     )]
     event: Account<'r, PredictionEvent>,
 
+    /// The mint of the event's token left side
     #[account(
         constraint = left_mint.key() == event.left_mint.ok_or(Error::NonLeftEvent)?.key()
     )]
     left_mint: Option<Account<'r, Mint>>,
 
+    /// The token account that contains the left side tokens
     #[account(
         mut,
         seeds = [
@@ -47,11 +53,13 @@ pub struct CloseEvent<'r> {
     )]
     left_pool: Option<Account<'r, TokenAccount>>,
 
+    /// The mint of the event's token right side
     #[account(
         constraint = right_mint.key() == event.right_mint.ok_or(Error::NonRightEvent)?.key()
     )]
     right_mint: Option<Account<'r, Mint>>,
 
+    /// The token account that contains the right side tokens
     #[account(
         mut,
         seeds = [
@@ -72,11 +80,11 @@ pub fn handler(ctx: Context<CloseEvent>) -> Result<()> {
     let token_program = &ctx.accounts.token_program;
     let event = &ctx.accounts.event;
 
-    if let Some(left_pool) = &ctx.accounts.left_pool {
+    if let Some(left_pool) = ctx.accounts.left_pool.as_ref() {
         event.close_pool(left_pool, signer, token_program)?;
     }
 
-    if let Some(right_pool) = &ctx.accounts.right_pool {
+    if let Some(right_pool) = ctx.accounts.right_pool.as_ref() {
         event.close_pool(right_pool, signer, token_program)?;
     }
 

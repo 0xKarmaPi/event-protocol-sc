@@ -8,11 +8,17 @@ pub enum Side {
     Right,
 }
 
+/// The ticket account represents the choice of predictors
 #[account]
 #[derive(InitSpace)]
 pub struct Ticket {
+    /// The predictor's wallet pubkey
     pub creator: Pubkey,
+
+    /// The bet amount for the choice
     pub amount: u64,
+
+    /// The choice's side
     pub selection: Side,
 }
 

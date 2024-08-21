@@ -47,11 +47,11 @@ export async function makeAVote(
         .accountsStrict({
           leftMint: eventAcc.leftMint,
           leftPool: leftPool,
-          leftSenderAta: senderAta.address,
+          signerLeftAta: senderAta.address,
 
           rightPool: null,
           rightMint: null,
-          rightSenderAta: null,
+          signerRightAta: null,
 
           event,
           ticket,
@@ -84,11 +84,11 @@ export async function makeAVote(
       .accountsStrict({
         leftMint: null,
         leftPool: null,
-        leftSenderAta: null,
+        signerLeftAta: null,
 
         rightMint: null,
         rightPool: null,
-        rightSenderAta: null,
+        signerRightAta: null,
 
         event,
         systemProgram: web3.SystemProgram.programId,
@@ -132,11 +132,11 @@ export async function makeAVote(
       .accountsStrict({
         leftMint: null,
         leftPool: null,
-        leftSenderAta: null,
+        signerLeftAta: null,
 
         rightPool,
         rightMint: eventAcc.rightMint,
-        rightSenderAta: senderAta.address,
+        signerRightAta: senderAta.address,
 
         event,
         systemProgram: web3.SystemProgram.programId,
@@ -169,11 +169,11 @@ export async function makeAVote(
     .accountsStrict({
       leftMint: null,
       leftPool: null,
-      leftSenderAta: null,
+      signerLeftAta: null,
 
       rightMint: null,
       rightPool: null,
-      rightSenderAta: null,
+      signerRightAta: null,
 
       event,
       systemProgram: web3.SystemProgram.programId,

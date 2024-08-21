@@ -1,10 +1,12 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
-use crate::constants::TOKENS_PLATFORM_POOL_SEEDS_PREFIX;
+use crate::constants::TOKENS_SYSTEM_FEE_SEEDS_PREFIX;
 
+/// The instruction is a part of the finish_event instruction
+/// It allows to create system fee token account to hold the tokens from two sides
 #[derive(Accounts)]
-pub struct CreateTokenPlatformPool<'r> {
+pub struct CreateSystemFeeTokenAccount<'r> {
     #[account(mut)]
     signer: Signer<'r>,
 
@@ -14,20 +16,20 @@ pub struct CreateTokenPlatformPool<'r> {
         init_if_needed,
         payer = signer,
         seeds = [
-            TOKENS_PLATFORM_POOL_SEEDS_PREFIX,
+            TOKENS_SYSTEM_FEE_SEEDS_PREFIX,
             mint.key().as_ref()
         ],
         token::mint = mint,
-        token::authority = platform_pool,
+        token::authority = system_fee,
         bump,
     )]
-    platform_pool: Account<'r, TokenAccount>,
+    system_fee: Account<'r, TokenAccount>,
 
     token_program: Program<'r, Token>,
 
     system_program: Program<'r, System>,
 }
 
-pub fn handler(_ctx: Context<CreateTokenPlatformPool>) -> Result<()> {
+pub fn handler(_ctx: Context<CreateSystemFeeTokenAccount>) -> Result<()> {
     Ok(())
 }
