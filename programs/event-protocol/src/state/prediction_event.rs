@@ -5,29 +5,44 @@ use crate::constants::PREDICTION_EVENT_SEEDS_PREFIX;
 
 use super::Side;
 
+/// The prediction event account
 #[account]
 #[derive(InitSpace, Debug)]
 pub struct PredictionEvent {
+    /// The event's unique id that is generated before deploying
     pub id: Pubkey,
 
+    /// The event creator's wallet pubkey
     pub creator: Pubkey,
 
+    /// The account's canonical bump
     pub bump: u8,
 
+    /// The event's starting date in seconds timestamp
     pub start_date: u64,
 
+    /// The event's ending date in seconds timestamp
     pub end_date: u64,
 
+    /// The left side vault's amount
     pub left_pool: u64,
 
+    /// The right side vault's amount
     pub right_pool: u64,
 
+    /// The left side token mint's pubkey.
+    /// If the left side is solana native token instead, it should be None
     pub left_mint: Option<Pubkey>,
 
+    /// The right side token mint's pubkey.
+    /// If the right side is solana native token instead, it should be None
     pub right_mint: Option<Pubkey>,
 
+    /// The event's event, it was be set by the creator
     pub result: Option<Side>,
 
+    /// The optional burning configuration,
+    /// If set true the tokens losing side would be burned instead of claiming from the winning side's winners
     pub burning: bool,
 }
 
@@ -44,6 +59,10 @@ impl PredictionEvent {
         let current_timestamp = clock.unix_timestamp as u64;
 
         Ok(self.start_date <= current_timestamp)
+    }
+
+    pub fn is_result_set(&self) -> bool {
+        self.result.is_some()
     }
 }
 

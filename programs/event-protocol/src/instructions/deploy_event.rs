@@ -6,26 +6,29 @@ use crate::{
     state::PredictionEvent,
 };
 
+/// The instruction allow to deploy a prediction event
 #[derive(Accounts)]
 #[instruction(id:  Pubkey)]
 pub struct DeployEvent<'r> {
     #[account(mut)]
-    payer: Signer<'r>,
+    signer: Signer<'r>,
 
     #[account(
         init,
         space = 8 + PredictionEvent::INIT_SPACE,
-        payer = payer,
+        payer = signer,
         seeds = [
             PREDICTION_EVENT_SEEDS_PREFIX,
-            id.key().as_ref(),
+            id.key().as_ref()
         ],
-        bump,
+        bump
     )]
     event: Account<'r, PredictionEvent>,
 
+    /// The mint of the event's token left side
     left_mint: Option<Account<'r, Mint>>,
 
+    /// The mint of the event's token right side
     right_mint: Option<Account<'r, Mint>>,
 
     token_program: Program<'r, Token>,
@@ -45,9 +48,9 @@ pub fn handler(
     require!(start_date < end_date, Error::InvalidTime);
 
     let event = &mut ctx.accounts.event;
-    let payer = &ctx.accounts.payer;
-    let left_mint = &ctx.accounts.left_mint;
-    let right_mint = &ctx.accounts.right_mint;
+    let payer = &ctx.accounts.signer;
+    let left_mint = ctx.accounts.left_mint.as_ref();
+    let right_mint = ctx.accounts.right_mint.as_ref();
 
     event.id = id;
     event.creator = payer.key();

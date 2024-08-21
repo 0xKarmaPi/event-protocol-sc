@@ -11,6 +11,7 @@ use crate::{
     state::{PredictionEvent, PredictionEventAccount, Side, Ticket, TokensPool},
 };
 
+/// The instuction allow predictor to select answer on event
 #[derive(Accounts)]
 #[instruction(selection:  Side)]
 pub struct VoteEvent<'r> {
@@ -48,12 +49,6 @@ pub struct VoteEvent<'r> {
 
     #[account(
         mut,
-        constraint = left_sender_ata.mint == event.left_mint.ok_or(Error::NonLeftEvent)?.key()
-    )]
-    left_sender_ata: Option<Account<'r, TokenAccount>>,
-
-    #[account(
-        mut,
         seeds = [
             TOKENS_LEFT_POOL_SEEDS_PREFIX,
             event.id.key().as_ref()
@@ -63,6 +58,12 @@ pub struct VoteEvent<'r> {
         bump,
     )]
     left_pool: Option<Account<'r, TokenAccount>>,
+
+    #[account(
+        mut,
+        constraint = signer_left_ata.mint == event.left_mint.ok_or(Error::NonLeftEvent)?.key()
+    )]
+    signer_left_ata: Option<Account<'r, TokenAccount>>,
 
     #[account(
         constraint = right_mint.key() == event.right_mint.ok_or(Error::NonRightEvent)?.key()
@@ -83,9 +84,9 @@ pub struct VoteEvent<'r> {
 
     #[account(
         mut,
-        constraint = right_sender_ata.mint == event.right_mint.ok_or(Error::NonRightEvent)?.key()
+        constraint = signer_right_ata.mint == event.right_mint.ok_or(Error::NonRightEvent)?.key()
     )]
-    right_sender_ata: Option<Account<'r, TokenAccount>>,
+    signer_right_ata: Option<Account<'r, TokenAccount>>,
 
     system_program: Program<'r, System>,
 
@@ -101,9 +102,8 @@ pub fn handler(ctx: Context<VoteEvent>, selection: Side, amount: u64) -> Result<
     require!(!event.is_finished()?, Error::FinishedEvent);
 
     ticket.creator = signer.key();
-
-    ticket.amount += amount;
     ticket.selection = selection;
+    ticket.amount += amount;
 
     let creator = signer.key();
     let event_id = event.id;
@@ -126,34 +126,31 @@ pub fn handler(ctx: Context<VoteEvent>, selection: Side, amount: u64) -> Result<
 fn handle_vote_left(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
     let event = &mut ctx.accounts.event;
     let signer = &ctx.accounts.signer;
-    let left_mint = &ctx.accounts.left_mint;
+    let left_mint = ctx.accounts.left_mint.as_ref();
 
     if left_mint.is_some() {
-        let left_pool = ctx
+        let pool = ctx
             .accounts
             .left_pool
             .as_ref()
             .ok_or(Error::MissingLeftPool)?;
 
-        let left_sender_ata = ctx
+        let signer_left_ata = ctx
             .accounts
-            .left_sender_ata
+            .signer_left_ata
             .as_ref()
             .ok_or(Error::MissingSenderAta)?;
 
         let token_program = &ctx.accounts.token_program;
 
-        left_pool.take_tokens_from_sender(signer, left_sender_ata, token_program, amount)?;
-
-        event.left_pool += amount;
+        pool.take_tokens_from_sender(signer, signer_left_ata, token_program, amount)?;
     } else {
         let system_program = &ctx.accounts.system_program;
 
         event.take_sols_from_sender(signer, system_program, amount)?;
-
-        event.left_pool += amount;
     }
 
+    event.left_pool += amount;
     Ok(())
 }
 
@@ -171,22 +168,20 @@ fn handle_vote_right(ctx: Context<VoteEvent>, amount: u64) -> Result<()> {
 
         let right_sender_ata = ctx
             .accounts
-            .right_sender_ata
+            .signer_right_ata
             .as_ref()
             .ok_or(Error::MissingSenderAta)?;
 
         let token_program = &ctx.accounts.token_program;
 
         right_pool.take_tokens_from_sender(signer, right_sender_ata, token_program, amount)?;
-
-        event.right_pool += amount;
     } else {
         let system_program = &ctx.accounts.system_program;
 
         event.take_sols_from_sender(signer, system_program, amount)?;
-
-        event.right_pool += amount;
     }
+
+    event.right_pool += amount;
 
     Ok(())
 }

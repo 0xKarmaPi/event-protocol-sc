@@ -44,9 +44,9 @@ pub enum Error {
     #[msg("Missing left mint")]
     MissingRightMint,
 
-    #[msg("The event is not allow to withdraw, the losing side tokens had burned")]
+    #[msg("The event is not allow to claim, the tokens losing side had burned")]
     BurningEvent,
 
-    #[msg("Missing system program")]
-    MissingSystemProgram,
+    #[msg("The event has not set result")]
+    ResultNotSetEvent,
 }

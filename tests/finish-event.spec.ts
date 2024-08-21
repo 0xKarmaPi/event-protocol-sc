@@ -7,7 +7,7 @@ import { addCreateAtaInsIfNotExist } from "../test-helper/add-create-ata-ins-if-
 import {
   MASTER_SEEDS,
   SIDE,
-  TOKENS_PLATFORM_POOL_SEEDS_PREFIX
+  TOKENS_SYSTEM_FEE_SEEDS_PREFIX
 } from "../test-helper/const"
 import { createPredictionEvent } from "../test-helper/create-prediction-event"
 import { makeAVote } from "../test-helper/make-a-vote"
@@ -48,18 +48,18 @@ describe("finish_event instruction", () => {
       rightMint
     })
 
-    const [rightPlatformPool] = web3.PublicKey.findProgramAddressSync(
-      [TOKENS_PLATFORM_POOL_SEEDS_PREFIX, rightMint.toBuffer()],
+    const [systemFee] = web3.PublicKey.findProgramAddressSync(
+      [TOKENS_SYSTEM_FEE_SEEDS_PREFIX, rightMint.toBuffer()],
       program.programId
     )
 
     const transaction = new web3.Transaction()
 
     const createRightPlatformPoolIns = await program.methods
-      .createTokenPlatformPool()
+      .createSystemFeeTokenAccount()
       .accountsStrict({
         mint: rightMint,
-        platformPool: rightPlatformPool,
+        systemFee,
         signer: signer.publicKey,
         systemProgram: web3.SystemProgram.programId,
         tokenProgram: spl.TOKEN_PROGRAM_ID
@@ -68,7 +68,7 @@ describe("finish_event instruction", () => {
 
     transaction.add(createRightPlatformPoolIns)
 
-    const rightCreatorFee = await addCreateAtaInsIfNotExist(
+    const creatorRightBeneficiaryAta = await addCreateAtaInsIfNotExist(
       transaction,
       provider.connection,
       signer.publicKey,
@@ -87,13 +87,13 @@ describe("finish_event instruction", () => {
       .finishEvent(SIDE.Left)
       .accountsStrict({
         leftMint: null,
-        leftCreatorFee: null,
-        leftPlatformFee: null,
+        creatorLeftBeneficiaryAta: null,
+        systemLeftFee: null,
         leftPool: null,
 
         rightMint,
-        rightCreatorFee: rightCreatorFee,
-        rightPlatformFee: rightPlatformPool,
+        creatorRightBeneficiaryAta,
+        systemRightFee: systemFee,
         rightPool,
 
         master,
@@ -112,15 +112,9 @@ describe("finish_event instruction", () => {
       signer.payer
     ])
 
-    const platformAta = await spl.getAccount(
-      provider.connection,
-      rightPlatformPool
-    )
+    const platformAta = await spl.getAccount(provider.connection, systemFee)
 
-    const creatorAta = await spl.getAccount(
-      provider.connection,
-      rightCreatorFee
-    )
+    const systemFeeAta = await spl.getAccount(provider.connection, systemFee)
 
     const eventAcc = await program.account.predictionEvent.fetch(event)
 
@@ -129,7 +123,7 @@ describe("finish_event instruction", () => {
     expect(eventAcc.result?.left).be.not.undefined
     expect(eventAcc.result?.right).be.undefined
 
-    expect(creatorAta.amount).eq(BigInt(0.6 * web3.LAMPORTS_PER_SOL * 0.025))
+    expect(systemFeeAta.amount).eq(BigInt(0.6 * web3.LAMPORTS_PER_SOL * 0.025))
     expect(platformAta.amount).eq(BigInt(0.6 * web3.LAMPORTS_PER_SOL * 0.025))
   })
 
@@ -141,18 +135,18 @@ describe("finish_event instruction", () => {
       burning: true
     })
 
-    const [rightPlatformPool] = web3.PublicKey.findProgramAddressSync(
-      [TOKENS_PLATFORM_POOL_SEEDS_PREFIX, rightMint.toBuffer()],
+    const [systemFee] = web3.PublicKey.findProgramAddressSync(
+      [TOKENS_SYSTEM_FEE_SEEDS_PREFIX, rightMint.toBuffer()],
       program.programId
     )
 
     const transaction = new web3.Transaction()
 
     const createRightPlatformPoolIns = await program.methods
-      .createTokenPlatformPool()
+      .createSystemFeeTokenAccount()
       .accountsStrict({
         mint: rightMint,
-        platformPool: rightPlatformPool,
+        systemFee,
         signer: signer.publicKey,
         systemProgram: web3.SystemProgram.programId,
         tokenProgram: spl.TOKEN_PROGRAM_ID
@@ -161,7 +155,7 @@ describe("finish_event instruction", () => {
 
     transaction.add(createRightPlatformPoolIns)
 
-    const rightCreatorFee = await addCreateAtaInsIfNotExist(
+    const creatorRightBeneficiaryAta = await addCreateAtaInsIfNotExist(
       transaction,
       provider.connection,
       signer.publicKey,
@@ -180,13 +174,13 @@ describe("finish_event instruction", () => {
       .finishEvent(SIDE.Left)
       .accountsStrict({
         leftMint: null,
-        leftCreatorFee: null,
-        leftPlatformFee: null,
+        creatorLeftBeneficiaryAta: null,
+        systemLeftFee: null,
         leftPool: null,
 
         rightMint,
-        rightCreatorFee: rightCreatorFee,
-        rightPlatformFee: rightPlatformPool,
+        creatorRightBeneficiaryAta,
+        systemRightFee: systemFee,
         rightPool,
 
         master,

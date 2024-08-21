@@ -15,37 +15,44 @@ use crate::{
     Side,
 };
 
+/// The instuction allows the winning side to claim tokens from losing side
 #[derive(Accounts)]
 pub struct ClaimReward<'r> {
+    /// The transaction's signer
     #[account(mut)]
     signer: Signer<'r>,
 
+    /// The prediction event
     #[account(
         seeds = [
             PREDICTION_EVENT_SEEDS_PREFIX,
             event.id.key().as_ref(),
         ],
         bump,
-        constraint = !event.burning @ Error::BurningEvent
+        constraint = !event.burning @ Error::BurningEvent,
+        constraint = event.is_result_set() @ Error::ResultNotSetEvent
     )]
     event: Account<'r, PredictionEvent>,
 
+    /// The ticket of signer on the above event
     #[account(
         seeds = [
             TICKET_SEEDS_PREFIX,
-            event.result.ok_or(Error::NotFinishedEvent)?.as_seeds(),
+            event.result.ok_or(Error::ResultNotSetEvent)?.as_seeds(),
             event.id.key().as_ref(),
-            signer.key().as_ref(),
+            signer.key().as_ref()
         ],
-        bump,
+        bump
     )]
     ticket: Account<'r, Ticket>,
 
+    /// The mint of the event's token left side
     #[account(
         constraint = left_mint.key() == event.left_mint.ok_or(Error::NonLeftEvent)?.key()
     )]
     left_mint: Option<Account<'r, Mint>>,
 
+    /// The token account that contains the left side tokens
     #[account(
         mut,
         seeds = [
@@ -54,22 +61,25 @@ pub struct ClaimReward<'r> {
         ],
         token::mint = left_mint,
         token::authority = event,
-        bump,
+        bump
     )]
     left_pool: Option<Account<'r, TokenAccount>>,
 
+    /// The signer's associated token account of left mint
     #[account(
         mut,
         associated_token::mint = left_mint,
-        associated_token::authority = signer,
+        associated_token::authority = signer
     )]
-    signer_left_ata: Option<Account<'r, TokenAccount>>,
+    signer_left_beneficiary_ata: Option<Account<'r, TokenAccount>>,
 
+    /// The mint of the event's token right side
     #[account(
         constraint = right_mint.key() == event.right_mint.ok_or(Error::NonRightEvent)?.key()
     )]
     right_mint: Option<Account<'r, Mint>>,
 
+    /// The token account that contains the right side tokens
     #[account(
         mut,
         seeds = [
@@ -78,16 +88,17 @@ pub struct ClaimReward<'r> {
         ],
         token::mint = right_mint,
         token::authority = event,
-        bump,
+        bump
     )]
     right_pool: Option<Account<'r, TokenAccount>>,
 
+    /// The optional signer's associated token account of right mint
     #[account(
         mut,
         associated_token::mint = right_mint,
-        associated_token::authority = signer,
+        associated_token::authority = signer
     )]
-    signer_right_ata: Option<Account<'r, TokenAccount>>,
+    signer_right_beneficiary_ata: Option<Account<'r, TokenAccount>>,
 
     token_program: Program<'r, Token>,
 
@@ -109,33 +120,33 @@ pub fn handler(ctx: Context<ClaimReward>) -> Result<()> {
 }
 
 fn handle_left_result(ctx: Context<ClaimReward>) -> Result<()> {
-    let ticket = &ctx.accounts.ticket;
     let event = &ctx.accounts.event;
     let signer = &ctx.accounts.signer;
-    let token_program = &ctx.accounts.token_program;
 
-    let bet_amount = ticket.amount;
+    let bet_amount = ctx.accounts.ticket.amount;
     let losing_pool = event.right_pool;
     let winning_pool = event.left_pool;
 
     let amount = bet_amount * 100_000 / winning_pool * losing_pool / 100_000;
 
     if event.right_mint.is_some() {
-        let right_pool = ctx
+        let pool = ctx
             .accounts
             .right_pool
             .as_ref()
             .ok_or(Error::MissingRightPool)?;
 
-        let signer_ata = ctx
+        let signer_beneficiary_ata = ctx
             .accounts
-            .signer_right_ata
+            .signer_right_beneficiary_ata
             .as_ref()
             .ok_or(Error::MissingSenderAta)?;
 
+        let token_program = &ctx.accounts.token_program;
+
         event.transfer_tokens_from_pool(
-            right_pool,
-            signer_ata.to_account_info(),
+            pool,
+            signer_beneficiary_ata.to_account_info(),
             token_program,
             amount,
         )?;
@@ -154,33 +165,33 @@ fn handle_left_result(ctx: Context<ClaimReward>) -> Result<()> {
 }
 
 fn handle_right_result(ctx: Context<ClaimReward>) -> Result<()> {
-    let ticket = &ctx.accounts.ticket;
     let event = &ctx.accounts.event;
     let signer = &ctx.accounts.signer;
-    let token_program = &ctx.accounts.token_program;
 
-    let bet_amount = ticket.amount;
+    let bet_amount = ctx.accounts.ticket.amount;
     let losing_pool = event.left_pool;
     let winning_pool = event.right_pool;
 
     let amount = bet_amount * 100_000 / winning_pool * losing_pool / 100_000;
 
     if event.left_mint.is_some() {
-        let left_pool = ctx
+        let pool = ctx
             .accounts
             .left_pool
             .as_ref()
             .ok_or(Error::MissingLeftPool)?;
 
-        let signer_ata = ctx
+        let signer_beneficiary_ata = ctx
             .accounts
-            .signer_left_ata
+            .signer_left_beneficiary_ata
             .as_ref()
             .ok_or(Error::MissingSenderAta)?;
 
+        let token_program = &ctx.accounts.token_program;
+
         event.transfer_tokens_from_pool(
-            left_pool,
-            signer_ata.to_account_info(),
+            pool,
+            signer_beneficiary_ata.to_account_info(),
             token_program,
             amount,
         )?;
