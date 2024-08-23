@@ -50,11 +50,11 @@ describe("claim_rewards instruction", () => {
     })
 
     const [goniLeftTicket] = await Promise.all([
-      makeAVote(goni, program, event, "left", 3),
-      makeAVote(asura, program, event, "right", 6)
+      makeAVote(goni, program, event, "left", 0.3),
+      makeAVote(asura, program, event, "right", 0.6)
     ])
 
-    await makeAVote(asura, program, event, "left", 3)
+    await makeAVote(asura, program, event, "left", 0.3)
 
     await sleep(3000)
 
@@ -148,7 +148,7 @@ describe("claim_rewards instruction", () => {
       .signers([goni])
       .rpc()
 
-    const rewards = (3 + 3) * web3.LAMPORTS_PER_SOL * (3 / 6) * 0.95
+    const rewards = (0.3 + 0.3) * web3.LAMPORTS_PER_SOL * (0.3 / 0.6) * 0.95
 
     const { amount: after } = await spl.getAccount(
       provider.connection,

@@ -54,8 +54,8 @@ describe("withdraw deposited instruction", () => {
     )
 
     const [goniLeftTicket] = await Promise.all([
-      makeAVote(goni, program, event, "left", 3),
-      makeAVote(asura, program, event, "right", 6)
+      makeAVote(goni, program, event, "left", 0.3),
+      makeAVote(asura, program, event, "right", 0.6)
     ])
 
     await sleep(3000)
@@ -149,7 +149,7 @@ describe("withdraw deposited instruction", () => {
       .signers([goni])
       .rpc()
 
-    const rewards = 3 * web3.LAMPORTS_PER_SOL
+    const rewards = 0.3 * web3.LAMPORTS_PER_SOL
 
     const { amount: after } = await spl.getAccount(
       provider.connection,

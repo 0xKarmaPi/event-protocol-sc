@@ -5,7 +5,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-event_protocol = "Fz24nmvrheUJJXbSwbMkP6FpMFFxbjuDqV99AZLWmASf"
+event_protocol = "CvD4dDWoSQV5rUftrzNzfd4xkC3g4KhWdx3UymRCNaPR"
+
+[programs.devnet]
+event_protocol = "CvD4dDWoSQV5rUftrzNzfd4xkC3g4KhWdx3UymRCNaPR"
 
 [registry]
 url = "https://api.apr.dev"
@@ -13,7 +16,6 @@ url = "https://api.apr.dev"
 [provider]
 cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
-
 
 [scripts]
 test = "pnpm ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.spec.ts"

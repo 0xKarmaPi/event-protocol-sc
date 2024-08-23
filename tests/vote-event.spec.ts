@@ -40,11 +40,11 @@ describe("vote_event instruction", () => {
     const beforeLamports = await provider.connection.getBalance(event)
 
     const [goniLeftTicket, asuraRightTicket] = await Promise.all([
-      makeAVote(goni, program, event, "left", 3),
-      makeAVote(asura, program, event, "right", 6)
+      makeAVote(goni, program, event, "left", 0.3),
+      makeAVote(asura, program, event, "right", 0.6)
     ])
 
-    await makeAVote(goni, program, event, "left", 3)
+    await makeAVote(goni, program, event, "left", 0.3)
 
     const afterLamports = await provider.connection.getBalance(event)
     const goniLeftTicketAcc = await program.account.ticket.fetch(goniLeftTicket)
@@ -57,19 +57,20 @@ describe("vote_event instruction", () => {
 
     expect(goniLeftTicketAcc.creator.toBase58()).eq(goni.publicKey.toBase58())
     expect(goniLeftTicketAcc.selection).deep.eq(SIDE.Left)
-    expect(goniLeftTicketAcc.amount.eq(bnLamports(6))).be.true
+    expect(goniLeftTicketAcc.amount.eq(bnLamports(0.6))).be.true
 
     expect(asuraRightTicketAcc.creator.toBase58()).eq(
       asura.publicKey.toBase58()
     )
     expect(asuraRightTicketAcc.selection).deep.eq(SIDE.Right)
-    expect(asuraRightTicketAcc.amount.eq(bnLamports(6))).be.true
+    expect(asuraRightTicketAcc.amount.eq(bnLamports(0.6))).be.true
 
-    expect(eventAcc.leftPool.eq(bnLamports(6))).be.true
-    expect(eventAcc.rightPool.eq(bnLamports(6))).be.true
+    expect(eventAcc.leftPool.eq(bnLamports(0.6))).be.true
+    expect(eventAcc.rightPool.eq(bnLamports(0.6))).be.true
 
-    expect(new BN(beforeLamports).add(bnLamports(12)).eq(new BN(afterLamports)))
-      .be.true
+    expect(
+      new BN(beforeLamports).add(bnLamports(1.2)).eq(new BN(afterLamports))
+    ).be.true
   })
 
   it(`Vote event left mint is "Some", right mint is "Some"`, async () => {
@@ -80,13 +81,13 @@ describe("vote_event instruction", () => {
     })
 
     const [goniLeftTicket, asuraRightTicket] = await Promise.all([
-      makeAVote(goni, program, event, "left", 3),
-      makeAVote(asura, program, event, "right", 6)
+      makeAVote(goni, program, event, "left", 0.3),
+      makeAVote(asura, program, event, "right", 0.6)
     ])
 
     const [goniRightTicket, asuraLeftTicket] = await Promise.all([
-      makeAVote(goni, program, event, "right", 2),
-      makeAVote(asura, program, event, "left", 2)
+      makeAVote(goni, program, event, "right", 0.2),
+      makeAVote(asura, program, event, "left", 0.2)
     ])
 
     const goniLeftTicketAcc = await program.account.ticket.fetch(goniLeftTicket)
@@ -105,24 +106,24 @@ describe("vote_event instruction", () => {
 
     expect(goniLeftTicketAcc.creator.toBase58()).eq(goni.publicKey.toBase58())
     expect(goniLeftTicketAcc.selection).deep.eq(SIDE.Left)
-    expect(goniLeftTicketAcc.amount.eq(bnLamports(3))).be.true
+    expect(goniLeftTicketAcc.amount.eq(bnLamports(0.3))).be.true
 
     expect(goniRightTicketAcc.creator.toBase58()).eq(goni.publicKey.toBase58())
     expect(goniRightTicketAcc.selection).deep.eq(SIDE.Right)
-    expect(goniRightTicketAcc.amount.eq(bnLamports(2))).be.true
+    expect(goniRightTicketAcc.amount.eq(bnLamports(0.2))).be.true
 
     expect(asuraRightTicketAcc.creator.toBase58()).eq(
       asura.publicKey.toBase58()
     )
     expect(asuraRightTicketAcc.selection).deep.eq(SIDE.Right)
-    expect(asuraRightTicketAcc.amount.eq(bnLamports(6))).be.true
+    expect(asuraRightTicketAcc.amount.eq(bnLamports(0.6))).be.true
 
     expect(asuraLeftTicketAcc.creator.toBase58()).eq(asura.publicKey.toBase58())
     expect(asuraLeftTicketAcc.selection).deep.eq(SIDE.Left)
-    expect(asuraLeftTicketAcc.amount.eq(bnLamports(2))).be.true
+    expect(asuraLeftTicketAcc.amount.eq(bnLamports(0.2))).be.true
 
-    expect(eventAcc.leftPool.eq(bnLamports(5))).be.true
-    expect(eventAcc.rightPool.eq(bnLamports(8))).be.true
+    expect(eventAcc.leftPool.eq(bnLamports(0.5))).be.true
+    expect(eventAcc.rightPool.eq(bnLamports(0.8))).be.true
   })
 
   it(`Vote event left mint is "Some", right mint is "None"`, async () => {
@@ -135,13 +136,13 @@ describe("vote_event instruction", () => {
     const beforeLamports = await provider.connection.getBalance(event)
 
     const [goniLeftTicket, asuraRightTicket] = await Promise.all([
-      makeAVote(goni, program, event, "left", 1),
-      makeAVote(asura, program, event, "right", 1)
+      makeAVote(goni, program, event, "left", 0.1),
+      makeAVote(asura, program, event, "right", 0.1)
     ])
 
     await Promise.all([
-      makeAVote(goni, program, event, "left", 3),
-      makeAVote(asura, program, event, "right", 3)
+      makeAVote(goni, program, event, "left", 0.3),
+      makeAVote(asura, program, event, "right", 0.3)
     ])
 
     const afterLamports = await provider.connection.getBalance(event)
@@ -153,19 +154,20 @@ describe("vote_event instruction", () => {
 
     expect(goniLeftTicketAcc.creator.toBase58()).eq(goni.publicKey.toBase58())
     expect(goniLeftTicketAcc.selection).deep.eq(SIDE.Left)
-    expect(goniLeftTicketAcc.amount.eq(bnLamports(4))).be.true
+    expect(goniLeftTicketAcc.amount.eq(bnLamports(0.4))).be.true
 
     expect(asuraRightTicketAcc.creator.toBase58()).eq(
       asura.publicKey.toBase58()
     )
     expect(asuraRightTicketAcc.selection).deep.eq(SIDE.Right)
-    expect(asuraRightTicketAcc.amount.eq(bnLamports(4))).be.true
+    expect(asuraRightTicketAcc.amount.eq(bnLamports(0.4))).be.true
 
-    expect(eventAcc.leftPool.eq(bnLamports(4))).be.true
-    expect(eventAcc.rightPool.eq(bnLamports(4))).be.true
+    expect(eventAcc.leftPool.eq(bnLamports(0.4))).be.true
+    expect(eventAcc.rightPool.eq(bnLamports(0.4))).be.true
 
-    expect(new BN(beforeLamports).add(bnLamports(4)).eq(new BN(afterLamports)))
-      .be.true
+    expect(
+      new BN(beforeLamports).add(bnLamports(0.4)).eq(new BN(afterLamports))
+    ).be.true
   })
 
   it(`Vote event left mint is "None", right mint is "Some"`, async () => {
@@ -178,8 +180,8 @@ describe("vote_event instruction", () => {
     const beforeLamports = await provider.connection.getBalance(event)
 
     const [goniLeftTicket, asuraRightTicket] = await Promise.all([
-      makeAVote(goni, program, event, "left", 4),
-      makeAVote(asura, program, event, "right", 4)
+      makeAVote(goni, program, event, "left", 0.4),
+      makeAVote(asura, program, event, "right", 0.4)
     ])
 
     const afterLamports = await provider.connection.getBalance(event)
@@ -191,18 +193,19 @@ describe("vote_event instruction", () => {
 
     expect(goniLeftTicketAcc.creator.toBase58()).eq(goni.publicKey.toBase58())
     expect(goniLeftTicketAcc.selection).deep.eq(SIDE.Left)
-    expect(goniLeftTicketAcc.amount.eq(bnLamports(4))).be.true
+    expect(goniLeftTicketAcc.amount.eq(bnLamports(0.4))).be.true
 
     expect(asuraRightTicketAcc.creator.toBase58()).eq(
       asura.publicKey.toBase58()
     )
     expect(asuraRightTicketAcc.selection).deep.eq(SIDE.Right)
-    expect(asuraRightTicketAcc.amount.eq(bnLamports(4))).be.true
+    expect(asuraRightTicketAcc.amount.eq(bnLamports(0.4))).be.true
 
-    expect(eventAcc.leftPool.eq(bnLamports(4))).be.true
-    expect(eventAcc.rightPool.eq(bnLamports(4))).be.true
+    expect(eventAcc.leftPool.eq(bnLamports(0.4))).be.true
+    expect(eventAcc.rightPool.eq(bnLamports(0.4))).be.true
 
-    expect(new BN(beforeLamports).add(bnLamports(4)).eq(new BN(afterLamports)))
-      .be.true
+    expect(
+      new BN(beforeLamports).add(bnLamports(0.4)).eq(new BN(afterLamports))
+    ).be.true
   })
 })

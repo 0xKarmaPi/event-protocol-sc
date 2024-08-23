@@ -10,11 +10,11 @@ export async function mock(provider: anchor.AnchorProvider) {
   const [goniSignature, asuraSignature] = await Promise.all([
     provider.connection.requestAirdrop(
       goni.publicKey,
-      100 * web3.LAMPORTS_PER_SOL
+      5 * web3.LAMPORTS_PER_SOL
     ),
     provider.connection.requestAirdrop(
       asura.publicKey,
-      100 * web3.LAMPORTS_PER_SOL
+      5 * web3.LAMPORTS_PER_SOL
     )
   ])
 
