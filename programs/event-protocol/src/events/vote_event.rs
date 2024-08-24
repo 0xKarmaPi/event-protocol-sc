@@ -4,6 +4,7 @@ use crate::state::Side;
 
 #[event]
 pub struct VoteEvtEvent {
+    pub key: Pubkey,
     pub event_id: Pubkey,
     pub creator: Pubkey,
     pub selection: Side,

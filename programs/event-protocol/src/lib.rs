@@ -8,7 +8,7 @@ use anchor_lang::prelude::*;
 use instructions::*;
 use state::Side;
 
-declare_id!("CvD4dDWoSQV5rUftrzNzfd4xkC3g4KhWdx3UymRCNaPR");
+declare_id!("EKaF2Vk8jgEqRdtxHy9smbHRSbsLXcS7nH7YWsckFcSC");
 
 #[program]
 pub mod event_protocol {
@@ -23,11 +23,23 @@ pub mod event_protocol {
         id: Pubkey,
         title: String,
         description: String,
+        left_description: String,
+        right_description: String,
         start_date: u64,
         end_date: u64,
         burning: bool,
     ) -> Result<()> {
-        deploy_event::handler(ctx, id, title, description, start_date, end_date, burning)
+        deploy_event::handler(
+            ctx,
+            id,
+            title,
+            description,
+            left_description,
+            right_description,
+            start_date,
+            end_date,
+            burning,
+        )
     }
 
     pub fn create_event_token_account(

@@ -25,6 +25,8 @@ async function main() {
   )
 
   const me = web3.Keypair.fromSecretKey(Uint8Array.from(secretKey))
+  const goni = web3.Keypair.fromSecretKey(Uint8Array.from(goniSecretKey))
+  const asura = web3.Keypair.fromSecretKey(Uint8Array.from(asuraSecretKey))
 
   const wallet = new anchor.Wallet(me)
 
@@ -53,9 +55,6 @@ async function main() {
   )
 
   console.log("done create event")
-
-  const goni = web3.Keypair.fromSecretKey(Uint8Array.from(goniSecretKey))
-  const asura = web3.Keypair.fromSecretKey(Uint8Array.from(asuraSecretKey))
 
   const goniLeftTicket = await makeAVote(goni, program, event, "left", 0.2)
   await makeAVote(asura, program, event, "right", 0.2)
@@ -108,7 +107,7 @@ async function main() {
 
   console.log("done finish event")
 
-  await sleep(2_000)
+  await sleep(6_000)
 
   const goniLeftAta = await spl.getOrCreateAssociatedTokenAccount(
     connection,
@@ -184,29 +183,73 @@ async function main() {
   await web3.sendAndConfirmTransaction(connection, withdrawTx, [goni])
 
   console.log("done withdraw")
+}
 
-  //   const x = await connection.getSignaturesForAddress(program.programId, {
-  //     until:
-  //       "5E9y5TdXtVe5NHh3Hg17Q25C2Ck5A4tERLqUDttAYbQACw2UosJC9qCoNJPxQMoHeY78Zg7p57t3cjuRdEBigxcs"
-  //   })
+async function mintAsset() {
+  const secretKey = JSON.parse(
+    fs.readFileSync("/home/vitaminc/.config/solana/id.json").toString()
+  )
+  const me = web3.Keypair.fromSecretKey(Uint8Array.from(secretKey))
+  const connection = new web3.Connection(web3.clusterApiUrl("devnet"))
+  const goni = web3.Keypair.fromSecretKey(Uint8Array.from(goniSecretKey))
+  const asura = web3.Keypair.fromSecretKey(Uint8Array.from(asuraSecretKey))
 
-  //   const tx = await connection.getParsedTransaction(
-  //     "5E9y5TdXtVe5NHh3Hg17Q25C2Ck5A4tERLqUDttAYbQACw2UosJC9qCoNJPxQMoHeY78Zg7p57t3cjuRdEBigxcs",
-  //     { commitment: "confirmed" }
+  //   const tx = new web3.Transaction()
+
+  //   tx.add(
+  //     web3.SystemProgram.transfer({
+  //       fromPubkey: me.publicKey,
+  //       lamports: 3 * web3.LAMPORTS_PER_SOL,
+  //       toPubkey: goni.publicKey
+  //     })
+  //   ).add(
+  //     web3.SystemProgram.transfer({
+  //       fromPubkey: me.publicKey,
+  //       lamports: 3 * web3.LAMPORTS_PER_SOL,
+  //       toPubkey: asura.publicKey
+  //     })
   //   )
 
-  //   const eventParser = new anchor.EventParser(
-  //     program.programId,
-  //     new anchor.BorshCoder(program.idl)
-  //   )
+  //   await web3.sendAndConfirmTransaction(connection, tx, [me])
 
-  //   console.log(tx?.meta?.logMessages)
+  console.log(await connection.getBalance(goni.publicKey))
+  console.log(await connection.getBalance(asura.publicKey))
 
-  //   const events = eventParser.parseLogs(tx!.meta!.logMessages!)
+  const goniLeftAta = await spl.getOrCreateAssociatedTokenAccount(
+    connection,
+    goni,
+    leftMint,
+    goni.publicKey
+  )
 
-  //   for (let event of events) {
-  //     console.log(event)
-  //   }
+  const asuraRightAta = await spl.getOrCreateAssociatedTokenAccount(
+    connection,
+    goni,
+    rightMint,
+    asura.publicKey
+  )
+
+  await spl.mintTo(
+    connection,
+    goni,
+    leftMint,
+    goniLeftAta.address,
+    me,
+    100 * web3.LAMPORTS_PER_SOL
+  )
+
+  await spl.mintTo(
+    connection,
+    goni,
+    rightMint,
+    asuraRightAta.address,
+    me,
+    100 * web3.LAMPORTS_PER_SOL
+  )
+
+  console.log((await spl.getAccount(connection, goniLeftAta.address)).amount)
+  console.log((await spl.getAccount(connection, asuraRightAta.address)).amount)
 }
 
 main()
+// mintAsset()

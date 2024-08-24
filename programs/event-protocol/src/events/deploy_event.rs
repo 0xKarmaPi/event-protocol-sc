@@ -7,6 +7,8 @@ pub struct DeployEvtEvent {
     pub bump: u8,
     pub title: String,
     pub description: String,
+    pub left_description: String,
+    pub right_description: String,
     pub creator: Pubkey,
     pub end_date: u64,
     pub start_date: u64,

@@ -7,3 +7,4 @@ test-ledger
 .yarn
 memo.txt
 secret.ts
+keypair.json

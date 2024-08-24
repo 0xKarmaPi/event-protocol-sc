@@ -22,6 +22,8 @@ type Options<
   rightMint: R
   title?: string
   description?: string
+  left_description?: string
+  right_description?: string
   startDate?: anchor.BN
   endDate?: anchor.BN
   burning?: boolean
@@ -36,6 +38,8 @@ export async function createPredictionEvent<K extends Kind>(
     kind,
     description = "some(description)",
     title = "some(title)",
+    left_description = "??",
+    right_description = "$$",
     leftMint,
     rightMint,
     startDate = new BN(Math.floor(new Date().getTime() / 1000 - 10)),
@@ -62,7 +66,16 @@ export async function createPredictionEvent<K extends Kind>(
   const transaction = new web3.Transaction()
 
   const deployEventIns = await program.methods
-    .deployEvent(id, title, description, startDate, endDate, burning)
+    .deployEvent(
+      id,
+      title,
+      description,
+      left_description,
+      right_description,
+      startDate,
+      endDate,
+      burning
+    )
     .accountsStrict({
       signer: signer.publicKey,
       event,

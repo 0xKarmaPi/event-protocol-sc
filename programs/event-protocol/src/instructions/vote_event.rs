@@ -105,6 +105,8 @@ pub fn handler(ctx: Context<VoteEvent>, selection: Side, amount: u64) -> Result<
     ticket.selection = selection;
     ticket.amount += amount;
 
+    let ticket_key = ticket.key();
+
     let creator = signer.key();
     let event_id = event.id;
 
@@ -118,6 +120,7 @@ pub fn handler(ctx: Context<VoteEvent>, selection: Side, amount: u64) -> Result<
         event_id,
         amount,
         selection,
+        key: ticket_key
     });
 
     Ok(())
