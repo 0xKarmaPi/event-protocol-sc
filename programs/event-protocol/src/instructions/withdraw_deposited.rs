@@ -29,6 +29,7 @@ pub struct WithdrawDeposited<'r> {
     event: Account<'r, PredictionEvent>,
 
     #[account(
+        mut,
         seeds = [
             TICKET_SEEDS_PREFIX,
             event.result.ok_or(Error::ResultNotSetEvent)?.as_seeds(),
@@ -36,6 +37,7 @@ pub struct WithdrawDeposited<'r> {
             signer.key().as_ref(),
         ],
         bump,
+        constraint = !ticket.withdrawn @ Error::AlreadyWithdrawn
     )]
     ticket: Account<'r, Ticket>,
 
@@ -95,13 +97,15 @@ pub struct WithdrawDeposited<'r> {
 }
 
 pub fn handler(ctx: Context<WithdrawDeposited>) -> Result<()> {
-    let ticket = &ctx.accounts.ticket;
+    let ticket = &mut ctx.accounts.ticket;
     let signer = &ctx.accounts.signer;
     let event = &ctx.accounts.event;
     let token_program = &ctx.accounts.token_program;
 
     let amount = ticket.amount;
     let result = event.result.ok_or(Error::ResultNotSetEvent)?;
+
+    ticket.withdrawn = true;
 
     match result {
         Side::Left => {

@@ -36,13 +36,15 @@ pub struct ClaimReward<'r> {
 
     /// The ticket of signer on the above event
     #[account(
+        mut,
         seeds = [
             TICKET_SEEDS_PREFIX,
             event.result.ok_or(Error::ResultNotSetEvent)?.as_seeds(),
             event.id.key().as_ref(),
             signer.key().as_ref()
         ],
-        bump
+        bump,
+        constraint = !ticket.claimed @ Error::AlreadyClaimed
     )]
     ticket: Account<'r, Ticket>,
 
@@ -110,6 +112,9 @@ pub struct ClaimReward<'r> {
 pub fn handler(ctx: Context<ClaimReward>) -> Result<()> {
     let event = &ctx.accounts.event;
     let result = event.result.ok_or(Error::NotFinishedEvent)?;
+
+    let ticket = &mut ctx.accounts.ticket;
+    ticket.claimed = true;
 
     match result {
         Side::Left => handle_left_result(ctx)?,

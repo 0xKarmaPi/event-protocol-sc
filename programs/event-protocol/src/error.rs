@@ -49,4 +49,10 @@ pub enum Error {
 
     #[msg("The event has not set result")]
     ResultNotSetEvent,
+
+    #[msg("Already claimed from this event")]
+    AlreadyClaimed,
+
+    #[msg("Already withdrawn from this event")]
+    AlreadyWithdrawn,
 }

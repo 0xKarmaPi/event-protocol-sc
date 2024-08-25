@@ -20,6 +20,10 @@ pub struct Ticket {
 
     /// The choice's side
     pub selection: Side,
+
+    pub claimed: bool,
+
+    pub withdrawn: bool,
 }
 
 impl Side {
