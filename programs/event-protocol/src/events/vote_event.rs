@@ -8,5 +8,5 @@ pub struct VoteEvtEvent {
     pub event_key: Pubkey,
     pub creator: Pubkey,
     pub selection: Side,
-    pub amount: u64,
+    pub current_amount: u64,
 }
