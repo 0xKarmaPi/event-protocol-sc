@@ -8,7 +8,7 @@ use anchor_lang::prelude::*;
 use instructions::*;
 use state::Side;
 
-declare_id!("EKaF2Vk8jgEqRdtxHy9smbHRSbsLXcS7nH7YWsckFcSC");
+declare_id!("4om3tmwcjESCkngvezJSyAerKgSfggCgf2LZe4XZk3HL");
 
 #[program]
 pub mod event_protocol {
@@ -18,6 +18,7 @@ pub mod event_protocol {
         initialize::hanlder(ctx)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn deploy_event(
         ctx: Context<DeployEvent>,
         id: Pubkey,

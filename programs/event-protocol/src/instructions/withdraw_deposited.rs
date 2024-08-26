@@ -10,6 +10,7 @@ use crate::{
         TOKENS_RIGHT_POOL_SEEDS_PREFIX,
     },
     error::Error,
+    events::WithdrawEvent,
     state::{PredictionEvent, PredictionEventAccount, Side, Ticket},
 };
 
@@ -159,6 +160,13 @@ pub fn handler(ctx: Context<WithdrawDeposited>) -> Result<()> {
             }
         }
     }
+
+    emit!(WithdrawEvent {
+        amount,
+        event_key: event.key(),
+        signer: signer.key(),
+        ticket_key: ticket.key(),
+    });
 
     Ok(())
 }

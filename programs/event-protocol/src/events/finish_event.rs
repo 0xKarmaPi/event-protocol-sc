@@ -4,6 +4,6 @@ use crate::state::Side;
 
 #[event]
 pub struct FinishEvtEvent {
-    pub event_id: Pubkey,
+    pub key: Pubkey,
     pub result: Side,
 }

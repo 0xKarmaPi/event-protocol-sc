@@ -161,9 +161,10 @@ fn handle_left_result(ctx: Context<ClaimReward>) -> Result<()> {
     }
 
     emit!(ClaimRewardsEvent {
-        event_id: event.id,
         signer: signer.key(),
-        amount
+        amount,
+        event_key: event.key(),
+        ticket_key: ctx.accounts.ticket.key()
     });
 
     Ok(())
@@ -206,9 +207,10 @@ fn handle_right_result(ctx: Context<ClaimReward>) -> Result<()> {
     }
 
     emit!(ClaimRewardsEvent {
-        event_id: event.id,
         signer: signer.key(),
-        amount
+        amount,
+        event_key: event.key(),
+        ticket_key: ctx.accounts.ticket.key()
     });
 
     Ok(())

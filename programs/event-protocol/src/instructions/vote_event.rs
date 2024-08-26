@@ -108,7 +108,7 @@ pub fn handler(ctx: Context<VoteEvent>, selection: Side, amount: u64) -> Result<
     let ticket_key = ticket.key();
 
     let creator = signer.key();
-    let event_id = event.id;
+    let event_key = event.key();
 
     match selection {
         Side::Left => handle_vote_left(ctx, amount)?,
@@ -116,11 +116,11 @@ pub fn handler(ctx: Context<VoteEvent>, selection: Side, amount: u64) -> Result<
     };
 
     emit!(VoteEvtEvent {
+        ticket_key,
+        event_key,
         creator,
-        event_id,
-        amount,
         selection,
-        key: ticket_key
+        amount,
     });
 
     Ok(())

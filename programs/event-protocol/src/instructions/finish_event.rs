@@ -127,14 +127,14 @@ pub fn handler(ctx: Context<FinishEvent>, result: Side) -> Result<()> {
 
     event.result = Some(result);
 
-    let event_id = event.id;
+    let key = event.key();
 
     match result {
         Side::Left => handle_set_left(ctx)?,
         Side::Right => handle_set_right(ctx)?,
     };
 
-    emit!(FinishEvtEvent { event_id, result });
+    emit!(FinishEvtEvent { key, result });
 
     Ok(())
 }

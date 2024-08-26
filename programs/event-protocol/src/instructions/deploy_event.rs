@@ -36,6 +36,7 @@ pub struct DeployEvent<'r> {
     system_program: Program<'r, System>,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn handler(
     ctx: Context<DeployEvent>,
     id: Pubkey,

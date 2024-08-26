@@ -5,10 +5,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-event_protocol = "EKaF2Vk8jgEqRdtxHy9smbHRSbsLXcS7nH7YWsckFcSC"
+event_protocol = "4om3tmwcjESCkngvezJSyAerKgSfggCgf2LZe4XZk3HL"
 
 [programs.devnet]
-event_protocol = "EKaF2Vk8jgEqRdtxHy9smbHRSbsLXcS7nH7YWsckFcSC"
+event_protocol = "4om3tmwcjESCkngvezJSyAerKgSfggCgf2LZe4XZk3HL"
 
 [registry]
 url = "https://api.apr.dev"

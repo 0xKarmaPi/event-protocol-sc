@@ -88,7 +88,7 @@ pub fn handler(ctx: Context<CloseEvent>) -> Result<()> {
         event.close_pool(right_pool, signer, token_program)?;
     }
 
-    emit!(CloseEvtEvent { event_id: event.id });
+    emit!(CloseEvtEvent { key: event.key() });
 
     Ok(())
 }

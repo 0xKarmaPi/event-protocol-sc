@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 #[event]
-pub struct ClaimRewardsEvent {
+pub struct WithdrawEvent {
     pub event_key: Pubkey,
     pub ticket_key: Pubkey,
     pub signer: Pubkey,
