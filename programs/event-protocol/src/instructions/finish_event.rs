@@ -35,7 +35,10 @@ pub struct FinishEvent<'r> {
             PREDICTION_EVENT_SEEDS_PREFIX,
             event.id.key().as_ref()
         ],
-        bump
+        bump,
+        constraint = event.is_finished()? @ Error::NotFinishedEvent,
+        constraint = !event.is_result_set() @ Error::ResultAlreadySetEvent
+
     )]
     event: Account<'r, PredictionEvent>,
 
@@ -122,8 +125,6 @@ pub struct FinishEvent<'r> {
 
 pub fn handler(ctx: Context<FinishEvent>, result: Side) -> Result<()> {
     let event = &mut ctx.accounts.event;
-
-    require!(event.is_finished()?, Error::NotFinishedEvent);
 
     event.result = Some(result);
 

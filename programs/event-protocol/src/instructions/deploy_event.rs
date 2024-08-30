@@ -62,12 +62,17 @@ pub fn handler(
     event.bump = ctx.bumps.event;
     event.burning = burning;
 
+    let mut left_mint_decimals = None;
+    let mut right_mint_decimals = None;
+
     if let Some(left_mint) = left_mint {
         event.left_mint = Some(left_mint.key());
+        left_mint_decimals = Some(left_mint.decimals);
     }
 
     if let Some(right_mint) = right_mint {
         event.right_mint = Some(right_mint.key());
+        right_mint_decimals = Some(right_mint.decimals);
     }
 
     emit!(DeployEvtEvent {
@@ -82,8 +87,10 @@ pub fn handler(
         end_date: event.end_date,
         left_mint: event.left_mint,
         right_mint: event.right_mint,
+        left_mint_decimals,
+        right_mint_decimals,
         start_date: event.start_date,
-        burning
+        burning,
     });
 
     Ok(())

@@ -15,4 +15,6 @@ pub struct DeployEvtEvent {
     pub burning: bool,
     pub left_mint: Option<Pubkey>,
     pub right_mint: Option<Pubkey>,
+    pub left_mint_decimals: Option<u8>,
+    pub right_mint_decimals: Option<u8>,
 }

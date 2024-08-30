@@ -25,6 +25,9 @@ pub struct VoteEvent<'r> {
             event.id.key().as_ref(),
         ],
         bump,
+        constraint = event.is_started()? @ Error::NotStartedEvent,
+        constraint = !event.is_finished()? @ Error::FinishedEvent,
+        constraint = !event.is_result_set() @ Error::ResultAlreadySetEvent,
     )]
     event: Account<'r, PredictionEvent>,
 
@@ -97,9 +100,6 @@ pub fn handler(ctx: Context<VoteEvent>, selection: Side, amount: u64) -> Result<
     let ticket = &mut ctx.accounts.ticket;
     let signer = &ctx.accounts.signer;
     let event = &ctx.accounts.event;
-
-    require!(event.is_started()?, Error::NotStartedEvent);
-    require!(!event.is_finished()?, Error::FinishedEvent);
 
     ticket.creator = signer.key();
     ticket.selection = selection;

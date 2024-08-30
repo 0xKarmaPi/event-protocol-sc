@@ -8,7 +8,7 @@ use anchor_lang::prelude::*;
 use instructions::*;
 use state::Side;
 
-declare_id!("4om3tmwcjESCkngvezJSyAerKgSfggCgf2LZe4XZk3HL");
+declare_id!("3QBHFR3hQrqkuHcgFsxoQB4wta7uKQoDHe4Fg8Bk1q8N");
 
 #[program]
 pub mod event_protocol {

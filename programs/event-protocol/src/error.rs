@@ -47,8 +47,11 @@ pub enum Error {
     #[msg("The event is not allow to claim, the tokens losing side had burned")]
     BurningEvent,
 
-    #[msg("The event has not set result")]
+    #[msg("The event's result has not set")]
     ResultNotSetEvent,
+
+    #[msg("The event's result has been set")]
+    ResultAlreadySetEvent,
 
     #[msg("Already claimed from this event")]
     AlreadyClaimed,
