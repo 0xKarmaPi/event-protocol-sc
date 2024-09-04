@@ -20,6 +20,7 @@ pub struct WithdrawDeposited<'r> {
     signer: Signer<'r>,
 
     #[account(
+        mut,
         seeds = [
             PREDICTION_EVENT_SEEDS_PREFIX,
             event.id.key().as_ref(),

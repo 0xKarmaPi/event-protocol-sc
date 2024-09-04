@@ -24,6 +24,7 @@ pub struct ClaimReward<'r> {
 
     /// The prediction event
     #[account(
+        mut,
         seeds = [
             PREDICTION_EVENT_SEEDS_PREFIX,
             event.id.key().as_ref(),

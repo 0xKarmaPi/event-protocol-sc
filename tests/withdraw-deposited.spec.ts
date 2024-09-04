@@ -158,4 +158,85 @@ describe("withdraw deposited instruction", () => {
 
     expect(before + BigInt(rewards)).eq(after)
   })
+
+  it("withdraw from a nn event", async () => {
+    const { event } = await createPredictionEvent(signer, program, {
+      kind: "none::none",
+      leftMint: null,
+      rightMint: null
+    })
+
+    const [goniLeftTicket] = await Promise.all([
+      makeAVote(goni, program, event, "left", 0.3),
+      makeAVote(asura, program, event, "right", 0.6)
+    ])
+
+    await sleep(3000)
+
+    const [master] = web3.PublicKey.findProgramAddressSync(
+      [MASTER_SEEDS],
+      program.programId
+    )
+
+    const transaction = new anchor.web3.Transaction()
+
+    const finishEventIns = await program.methods
+      .finishEvent(SIDE.Left)
+      .accountsStrict({
+        leftMint: null,
+        creatorLeftBeneficiaryAta: null,
+        systemLeftFee: null,
+        leftPool: null,
+
+        rightMint: null,
+        creatorRightBeneficiaryAta: null,
+        systemRightFee: null,
+        rightPool: null,
+
+        master,
+        event,
+
+        signer: signer.publicKey,
+        systemProgram: web3.SystemProgram.programId,
+        tokenProgram: spl.TOKEN_PROGRAM_ID,
+        associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID
+      })
+      .instruction()
+
+    transaction.add(finishEventIns)
+
+    await web3.sendAndConfirmTransaction(provider.connection, transaction, [
+      signer.payer
+    ])
+
+    const eventLamportsBefore = await provider.connection.getBalance(event)
+
+    await program.methods
+      .withdrawDeposited()
+      .accountsStrict({
+        event,
+        leftMint: null,
+        leftPool: null,
+        signerLeftBeneficiaryAta: null,
+
+        rightMint: null,
+        rightPool: null,
+        signerRightBeneficiaryAta: null,
+
+        ticket: goniLeftTicket,
+
+        signer: goni.publicKey,
+        systemProgram: web3.SystemProgram.programId,
+        tokenProgram: spl.TOKEN_PROGRAM_ID,
+        associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID
+      })
+      .signers([goni])
+      .rpc()
+
+    const eventLamportsAfter = await provider.connection.getBalance(event)
+
+    expect(eventLamportsBefore - eventLamportsAfter).eq(
+      0.3 * web3.LAMPORTS_PER_SOL
+    )
+  })
 })

@@ -22,6 +22,7 @@ pub struct FinishEvent<'r> {
     signer: Signer<'r>,
 
     #[account(
+        mut,
         seeds = [
             MASTER_SEEDS
         ],
@@ -194,9 +195,9 @@ fn handle_set_left(ctx: Context<FinishEvent>) -> Result<()> {
         let signer = &ctx.accounts.signer;
 
         event.sub_lamports(amount)?;
-        signer.add_lamports(amount)?;
-
         event.sub_lamports(amount)?;
+
+        signer.add_lamports(amount)?;
         master.add_lamports(amount)?;
     }
 
@@ -259,9 +260,9 @@ fn handle_set_right(ctx: Context<FinishEvent>) -> Result<()> {
         let signer = &ctx.accounts.signer;
 
         event.sub_lamports(amount)?;
-        signer.add_lamports(amount)?;
-
         event.sub_lamports(amount)?;
+
+        signer.add_lamports(amount)?;
         master.add_lamports(amount)?;
     }
 

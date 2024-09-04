@@ -203,4 +203,63 @@ describe("finish_event instruction", () => {
 
     expect(amount).eq(BigInt(0))
   })
+
+  it("finish a NN event", async () => {
+    const { event } = await createPredictionEvent(signer, program, {
+      kind: "none::none",
+      leftMint: null,
+      rightMint: null
+    })
+
+    const transaction = new web3.Transaction()
+
+    await Promise.all([
+      makeAVote(goni, program, event, "left", 0.5),
+      makeAVote(asura, program, event, "right", 0.6)
+    ])
+
+    await sleep(3000)
+
+    const eventLamportsBefore = await provider.connection.getBalance(event)
+    const masterLamportsBefore = await provider.connection.getBalance(master)
+
+    const finishEventIns = await program.methods
+      .finishEvent(SIDE.Left)
+      .accountsStrict({
+        leftMint: null,
+        creatorLeftBeneficiaryAta: null,
+        systemLeftFee: null,
+        leftPool: null,
+
+        rightMint: null,
+        creatorRightBeneficiaryAta: null,
+        systemRightFee: null,
+        rightPool: null,
+
+        master,
+        event,
+
+        signer: signer.publicKey,
+        systemProgram: web3.SystemProgram.programId,
+        tokenProgram: spl.TOKEN_PROGRAM_ID,
+        associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID
+      })
+      .instruction()
+
+    transaction.add(finishEventIns)
+
+    await web3.sendAndConfirmTransaction(provider.connection, transaction, [
+      signer.payer
+    ])
+
+    const eventLamportsAfter = await provider.connection.getBalance(event)
+    const masterLamportAfter = await provider.connection.getBalance(master)
+
+    expect(eventLamportsBefore - eventLamportsAfter).eq(
+      0.6 * web3.LAMPORTS_PER_SOL * 0.05
+    )
+    expect(masterLamportAfter - masterLamportsBefore).eq(
+      0.6 * web3.LAMPORTS_PER_SOL * 0.025
+    )
+  })
 })
